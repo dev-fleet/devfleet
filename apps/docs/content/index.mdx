@@ -1,0 +1,38 @@
+# Getting Started
+
+DevFleet is a lightweight coding agent runner that helps you fix bugs, write docs, and ship features. It connects to GitHub, reads your codebase, and works **asynchronously** — so you can keep moving while tasks run in the background.
+
+You bring your own API key and choose the agent (today: Claude Code; more coming). Run multiple tasks in parallel and review diffs/PRs when they’re ready. It also works on mobile.
+
+This guide shows you how to set up DevFleet and run your first task.
+
+## Create an account
+
+1. Visit https://app.devfleet.ai
+2. Sign in with your GitHub account.
+
+## Connect GitHub
+
+DevFleet needs acces to your repositories in order to work.
+
+1. Select the organization you want.
+2. Click install.
+3. Choose _all_ or specific repos that you want to connect to DevFleet.
+4. You will be redirected back to DevFleet. If not, try refreshing the page.
+
+Once connected, you’ll be redirected to environment setup.
+
+## Setup Environments
+
+DevFleet runs in a virtual machines where it clones your code, and make the code modifications. You need to create an environment for the runs.
+
+1. Pick a repository from the repo selector.
+
+DevFleet will automatically create an environment for the repository with some defaults. You can change these later from the environments menu. We'll be adding more environment options in the future.
+
+## Select Your Agent
+
+Unlike large model providers, when you're using DevFleet, you're not locked to a single model. We let you pick the agent you want and use it without having any additional costs.
+
+1. Select your agent (today: Claude Code; more coming)
+2. Enter your API key

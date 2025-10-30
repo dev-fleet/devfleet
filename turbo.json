@@ -1,0 +1,42 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  },
+  "globalEnv": [
+    "NODE_ENV",
+    "VERCEL",
+    "VERCEL_URL",
+    "VERCEL_ENV",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "AUTH_GITHUB_ID",
+    "AUTH_GITHUB_SECRET",
+    "GITHUB_APP_ID",
+    "GITHUB_APP_CLIENT_ID",
+    "GITHUB_APP_CLIENT_SECRET",
+    "GITHUB_APP_PRIVATE_KEY",
+    "OPENAI_API_KEY",
+    "E2B_API_KEY",
+    "MOCK_AI",
+    "DATABASE_URL",
+    "ENCRYPTION_KEY",
+    "SKIP_ENV_VALIDATION",
+    "NEXT_PUBLIC_POSTHOG_KEY"
+  ]
+}
