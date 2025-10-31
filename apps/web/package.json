@@ -14,7 +14,7 @@
     "lint:fix": "next lint --fix",
     "typecheck": "tsc --noEmit",
     "db:docker:up": "docker compose up -d --wait",
-    "db:docker:down": "docker compose down",
+    "db:docker:down": "docker compose down -v",
     "db:dev:push": "drizzle-kit push",
     "db:dev:generate": "drizzle-kit generate",
     "db:dev:drop": "tsx ./src/db/delete-tables.dev.ts",

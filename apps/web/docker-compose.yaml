@@ -1,0 +1,13 @@
+name: devfleet
+services:
+  postgres:
+    image: supabase/postgres:15.8.1.126
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -28,12 +28,12 @@ const timestamps = {
  *************************************************************************/
 
 // const TASK_STATUSES = ["ACTIVE", "PAUSED", "TERMINATED"] as const;
-// const ONBOARDING_STEPS = [
-//   "github",
-//   "environment",
-//   "agent",
-//   "completed",
-// ] as const;
+const ONBOARDING_STEPS = [
+  "github",
+  "environment",
+  "agent",
+  "completed",
+] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -296,9 +296,9 @@ export const repositories = pgTable(
  *
  *************************************************************************/
 
-export type TaskStatus = (typeof TASK_STATUSES)[number];
+// export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
-export type PrStatus = (typeof PR_STATUSES)[number];
+// export type PrStatus = (typeof PR_STATUSES)[number];
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
