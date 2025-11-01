@@ -65,6 +65,9 @@ export const users = pgTable("users", {
     .notNull()
     .default("github"),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
+  defaultGhOrganizationId: text("default_gh_organization_id").references(
+    () => ghOrganizations.id
+  ),
   ...timestamps,
 });
 
@@ -110,25 +113,25 @@ export const verifications = pgTable("verifications", {
   ...timestamps,
 });
 
-export const ghAccounts = pgTable(
-  "gh_accounts",
+export const ghOrganizations = pgTable(
+  "gh_organizations",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
     // GitHub account id
-    githubAccountId: text("github_account_id").notNull(),
-    accountType: text("account_type", {
+    organizationId: text("organization_id").notNull(),
+    organizationType: text("organization_type", {
       enum: ["USER", "ORG"],
     }).notNull(),
-    login: text("login").notNull(), // "owner" or "org"
+    login: text("login").notNull(),
     displayName: text("display_name"),
     avatarUrl: text("avatar_url"),
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("gh_accounts_github_id_uq").on(table.githubAccountId),
-    index("gh_accounts_login_idx").on(table.login),
+    uniqueIndex("gh_organizations_organization_id_uq").on(table.organizationId),
+    index("gh_organizations_login_idx").on(table.login),
   ]
 );
 
@@ -138,9 +141,9 @@ export const installations = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    ghAccountId: text("gh_account_id")
+    ghOrganizationId: text("gh_organization_id")
       .notNull()
-      .references(() => ghAccounts.id),
+      .references(() => ghOrganizations.id),
     githubInstallationId: text("github_installation_id").notNull(),
     targetType: text("target_type", {
       enum: ["USER", "ORG"],
@@ -151,7 +154,7 @@ export const installations = pgTable(
   },
   (table) => [
     uniqueIndex("installations_github_id_uq").on(table.githubInstallationId),
-    index("installations_account_idx").on(table.ghAccountId),
+    index("installations_organization_idx").on(table.ghOrganizationId),
   ]
 );
 
@@ -161,9 +164,9 @@ export const repositories = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    ownerGhAccountId: text("owner_gh_account_id")
+    ownerGhOrganizationId: text("owner_gh_organization_id")
       .notNull()
-      .references(() => ghAccounts.id),
+      .references(() => ghOrganizations.id),
     githubId: text("github_id").notNull(),
     name: text("name").notNull(),
     fullName: text("full_name").notNull(),
@@ -184,8 +187,41 @@ export const repositories = pgTable(
   },
   (table) => [
     uniqueIndex("repositories_github_id_uq").on(table.githubId),
-    index("repositories_owner_idx").on(table.ownerGhAccountId),
+    index("repositories_owner_organization_idx").on(
+      table.ownerGhOrganizationId
+    ),
     index("repositories_fullname_idx").on(table.fullName),
+  ]
+);
+
+export const userGhOrganizationMemberships = pgTable(
+  "user_gh_organization_memberships",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    ghOrganizationId: text("gh_organization_id")
+      .notNull()
+      .references(() => ghOrganizations.id, { onDelete: "cascade" }),
+    role: text("role", {
+      enum: ["OWNER", "MEMBER"],
+    })
+      .notNull()
+      .default("MEMBER"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("user_gh_organization_memberships_user_gh_organization_uq").on(
+      table.userId,
+      table.ghOrganizationId
+    ),
+    index("user_gh_organization_memberships_user_idx").on(table.userId),
+    index("user_gh_organization_memberships_gh_organization_idx").on(
+      table.ghOrganizationId
+    ),
   ]
 );
 
@@ -304,8 +340,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
-export type GhAccount = typeof ghAccounts.$inferSelect;
-export type NewGhAccount = typeof ghAccounts.$inferInsert;
+export type GhOrganization = typeof ghOrganizations.$inferSelect;
+export type NewGhOrganization = typeof ghOrganizations.$inferInsert;
 export type Installation = typeof installations.$inferSelect;
 export type NewInstallation = typeof installations.$inferInsert;
 export type Repository = typeof repositories.$inferSelect;

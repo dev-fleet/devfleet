@@ -2,8 +2,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import { env } from "@/env.mjs";
-import { storeUserOrganizations } from "@/actions/github";
-import { sendInternalSlackNotification } from "./server/utils";
+import { syncUserOrgsAndMemberships } from "@/actions/github";
+// import { sendInternalSlackNotification } from "./server/utils";
 import { after } from "next/server";
 
 export const auth = betterAuth({
@@ -32,9 +32,11 @@ export const auth = betterAuth({
           // Store GitHub organizations after account creation/update
           try {
             if (account.providerId === "github" && account.accessToken) {
-              await storeUserOrganizations(account.userId, account.accessToken);
-            } else {
-              console.log("No github account found for account", account.id);
+              // Since user signed up with Github, we can fetch their organizations and store them in the database
+              await syncUserOrgsAndMemberships(
+                account.userId,
+                account.accessToken
+              );
             }
           } catch (error) {
             console.error("Failed to store organizations:", error);
@@ -47,11 +49,11 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           // Notify slack
-          after(async () => {
-            await sendInternalSlackNotification(
-              `${user.email} has created an account`
-            );
-          });
+          // after(async () => {
+          //   await sendInternalSlackNotification(
+          //     `${user.email} has created an account`
+          //   );
+          // });
         },
       },
     },
