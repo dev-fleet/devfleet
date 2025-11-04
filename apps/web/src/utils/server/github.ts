@@ -8,6 +8,7 @@ import {
   ghOrganizations,
   NewGhOrganization,
   userGhOrganizationMemberships,
+  users,
 } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 // import { getGitHubAppInstallationAccessToken } from "@/lib/server/github";
@@ -300,6 +301,30 @@ export async function syncUserOrgsAndMemberships(
 
       await tx.insert(userGhOrganizationMemberships).values(rows);
     });
+
+    // If the user doesn't have a default GitHub organization yet,
+    // set it to their personal (USER) organization
+    const currentUser = await db
+      .select({ defaultGhOrganizationId: users.defaultGhOrganizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!currentUser[0]?.defaultGhOrganizationId) {
+      const userPersonalOrg = upsertedGhOrganizations.find(
+        (org) => org.organizationType === "USER"
+      );
+
+      if (userPersonalOrg) {
+        await db
+          .update(users)
+          .set({
+            defaultGhOrganizationId: userPersonalOrg.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, userId));
+      }
+    }
   } catch (error) {
     console.error("GitHub API Error:", error);
     throw new Error(

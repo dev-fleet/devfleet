@@ -1,10 +1,10 @@
 "use server";
 
 import { getSession } from "@/utils/auth";
-import { headers } from "next/headers";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 
 export async function getCurrentOnboardingStep() {
   const session = await getSession();
@@ -27,4 +27,19 @@ export async function getCurrentOnboardingStep() {
   }
 
   return user[0];
+}
+
+export async function completeOnboarding() {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error("No session found");
+  }
+
+  await db
+    .update(users)
+    .set({ onboardingStep: "completed", onboardingCompletedAt: new Date() })
+    .where(eq(users.id, session.user.id));
+
+  redirect("/dashboard");
 }

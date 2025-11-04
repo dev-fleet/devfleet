@@ -7,7 +7,7 @@
    1. Callback URL: http://localhost:3001/api/github-app/callback
    1. Check "Request user authorization (OAuth) during installation"
    1. Webhook
-      1. Enter your ngrok url: https://{your-url}.ngrok-free.app/api/github-app/hooks
+      1. Enter your ngrok url: https://{your-url}.ngrok-free.app/api/github-app/webhook
    1. Permissions:
       - Repository permissions:
         - Contents: Read and Write
@@ -19,6 +19,7 @@
         - Pull request
    1. Set in .env: `GITHUB_APP_ID=<App ID>`
    1. Set in .env: `GITHUB_APP_CLIENT_ID=<Client ID>`
+   1. Set in .env: `GITHUB_APP_WEBHOOK_SECRET=<Webhook Secret>`
    1. Click "Generate a client secret", copy it
    1. Set in .env: `GITHUB_APP_CLIENT_SECRET=<client secret>`
    1. Click "Generate a private key", download the .pem file

@@ -28,12 +28,7 @@ const timestamps = {
  *************************************************************************/
 
 // const TASK_STATUSES = ["ACTIVE", "PAUSED", "TERMINATED"] as const;
-const ONBOARDING_STEPS = [
-  "github",
-  "environment",
-  "agent",
-  "completed",
-] as const;
+const ONBOARDING_STEPS = ["github", "agent", "completed"] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",

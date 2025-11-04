@@ -9,6 +9,7 @@ import {
 } from "@workspace/ui/components/sidebar";
 import { AppSidebar } from "@/components/sidebar/sidebar";
 import type { Metadata } from "next";
+import { getSession } from "@/utils/auth";
 
 export const metadata: Metadata = {
   title: "Product Dashboard",
@@ -22,6 +23,11 @@ const DashboardLayout = async ({
   children: ReactNode;
   params: { orgSlug: string };
 }) => {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
   // Check if user has completed onboarding
   const onboardingData = await getCurrentOnboardingStep();
 

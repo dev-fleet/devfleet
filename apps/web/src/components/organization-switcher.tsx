@@ -29,10 +29,13 @@ import { env } from "@/env.mjs";
 const DICEBEAR_AVATAR_URL = "https://api.dicebear.com/9.x/initials/svg?seed=";
 
 export function OrganizationSwitcher() {
-  const { data: user, isLoading: isUserLoading } = useUser();
+  const { data: user, isLoading: isUserLoading, mutate } = useUser();
   const { isMobile } = useSidebar();
 
   const isLoading = isUserLoading;
+  const activeOrganization = user?.organizations?.find(
+    (o) => o.id === user?.defaultGhOrganizationId
+  );
 
   const handleOrganizationSwitch = async (orgId: string) => {
     const org = user?.organizations?.find((o) => o.id === orgId);
@@ -42,8 +45,8 @@ export function OrganizationSwitcher() {
       const result = await setActiveOrganization(orgId);
       if (result.success) {
         // Revalidate the user data to get the updated active organization
-        mutate("/api/me");
-        toast.success(`Switched to ${org.name || org.login}`);
+        mutate();
+        toast.success(`Switched to ${org.displayName || org.login}`);
       } else {
         toast.error(result.message || "Failed to switch organization");
       }
@@ -87,15 +90,16 @@ export function OrganizationSwitcher() {
               <Avatar className="size-8">
                 <AvatarImage
                   src={
-                    activeOrganization.type === "User"
+                    activeOrganization.organizationType === "USER"
                       ? `${env.NEXT_PUBLIC_URL}/github-mark.svg`
                       : activeOrganization.avatarUrl ||
                         `${DICEBEAR_AVATAR_URL}${activeOrganization.login}`
                   }
                   alt={
-                    activeOrganization.type === "User"
+                    activeOrganization.organizationType === "USER"
                       ? "GitHub"
-                      : activeOrganization.name || activeOrganization.login
+                      : activeOrganization.displayName ||
+                        activeOrganization.login
                   }
                 />
               </Avatar>
@@ -119,7 +123,7 @@ export function OrganizationSwitcher() {
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Organizations
             </DropdownMenuLabel>
-            {organizations?.map((org) => (
+            {user?.organizations?.map((org) => (
               <DropdownMenuItem
                 key={org.id}
                 onClick={() => handleOrganizationSwitch(org.id)}
@@ -128,17 +132,25 @@ export function OrganizationSwitcher() {
                 <Avatar className="size-6">
                   <AvatarImage
                     src={
-                      org.type === "User"
+                      org.organizationType === "USER"
                         ? `${env.NEXT_PUBLIC_URL}/github-mark.svg`
                         : org.avatarUrl || `${DICEBEAR_AVATAR_URL}${org.login}`
                     }
-                    alt={org.type === "User" ? "GitHub" : org.name || org.login}
+                    alt={
+                      org.organizationType === "USER"
+                        ? "GitHub"
+                        : org.displayName || org.login
+                    }
                   />
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="font-medium">{org.name || org.login}</span>
+                  <span className="font-medium">
+                    {org.displayName || org.login}
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    {org.type === "User" ? "Personal" : "Organization"}
+                    {org.organizationType === "USER"
+                      ? "Personal"
+                      : "Organization"}
                   </span>
                 </div>
               </DropdownMenuItem>

@@ -24,12 +24,6 @@ const steps: Step[] = [
     href: "/onboarding/github",
   },
   {
-    id: "environment",
-    title: "Create Environment",
-    icon: Container,
-    href: "/onboarding/environment",
-  },
-  {
     id: "agent",
     title: "Configure Agent",
     icon: Bot,
@@ -69,7 +63,6 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
     dbCurrentStep ||
     (() => {
       if (pathname.includes("/github")) return "github";
-      if (pathname.includes("/environment")) return "environment";
       if (pathname.includes("/agent")) return "agent";
       return "github";
     })();
@@ -77,7 +70,7 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
   const getStepStatus = (
     stepId: OnboardingStep
   ): "completed" | "current" | "upcoming" => {
-    const stepOrder = ["github", "environment", "agent"];
+    const stepOrder = ["github", "agent"];
     const currentIndex = stepOrder.indexOf(activeStep);
     const stepIndex = stepOrder.indexOf(stepId);
 

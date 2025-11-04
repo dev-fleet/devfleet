@@ -33,6 +33,7 @@ export const env = createEnv({
     GITHUB_APP_CLIENT_ID: z.string(),
     GITHUB_APP_CLIENT_SECRET: z.string(),
     GITHUB_APP_PRIVATE_KEY: z.string(),
+    GITHUB_APP_WEBHOOK_SECRET: z.string(),
 
     OPENAI_API_KEY: z.string(),
     E2B_API_KEY: z.string(),
@@ -88,6 +89,7 @@ export const env = createEnv({
     GITHUB_APP_CLIENT_ID: process.env.GITHUB_APP_CLIENT_ID,
     GITHUB_APP_CLIENT_SECRET: process.env.GITHUB_APP_CLIENT_SECRET,
     GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY,
+    GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
 
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     E2B_API_KEY: process.env.E2B_API_KEY,

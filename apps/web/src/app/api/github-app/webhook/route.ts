@@ -1,155 +1,128 @@
-import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { NextRequest } from "next/server";
+import { env } from "@/env.mjs";
+import { App } from "octokit";
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.text();
-    const signature = request.headers.get("x-hub-signature-256");
-    const event = request.headers.get("x-github-event");
-    const deliveryId = request.headers.get("x-github-delivery");
+const handler = async (request: NextRequest) => {
+  const signature = request.headers.get("x-hub-signature-256");
+  const name = request.headers.get("x-github-event");
+  const id = request.headers.get("x-github-delivery");
+  const payload = await request.text();
 
-    console.log("GitHub App webhook received:", {
-      event,
-      deliveryId,
-      signature: signature ? "present" : "missing",
-    });
-
-    // TODO: Implement webhook signature verification
-    // You'll need to verify the webhook signature using your GitHub App's webhook secret
-    // const isValid = await verifyWebhookSignature(body, signature, process.env.GITHUB_APP_WEBHOOK_SECRET);
-    // if (!isValid) {
-    //   return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    // }
-
-    const payload = JSON.parse(body);
-
-    switch (event) {
-      case "installation":
-        await handleInstallationEvent(payload);
-        break;
-      case "installation_repositories":
-        await handleInstallationRepositoriesEvent(payload);
-        break;
-      case "repository":
-        await handleRepositoryEvent(payload);
-        break;
-      default:
-        console.log(`Unhandled event: ${event}`);
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("GitHub App webhook error:", error);
-    return NextResponse.json(
-      { error: "Webhook processing failed" },
-      { status: 500 }
-    );
+  if (!signature || !name || !id) {
+    return new Response("Invalid signature, name, or id", { status: 400 });
   }
-}
 
-async function handleInstallationEvent(payload: any) {
-  const { action, installation, repositories } = payload;
-
-  console.log("Installation event:", {
-    action,
-    installationId: installation.id,
-    account: installation.account.login,
-    repositoryCount: repositories?.length || 0,
+  const app = new App({
+    appId: env.GITHUB_APP_ID,
+    privateKey: Buffer.from(env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
+      "utf8"
+    ),
+    webhooks: {
+      secret: env.GITHUB_APP_WEBHOOK_SECRET,
+    },
   });
 
-  // TODO: Implement installation handling
-  // When a user installs the GitHub App:
-  // 1. Store the installation ID
-  // 2. Link it to the user's organization
-  // 3. Store initial repository access
-  // 4. Fetch and store repository data using the installation access token
-
-  switch (action) {
-    case "created":
-      console.log("App installed for:", installation.account.login);
-      // TODO: Link installation to organization and store repositories
-      break;
-    case "deleted":
-      console.log("App uninstalled for:", installation.account.login);
-      // TODO: Remove installation and repository access
-      break;
-    case "suspend":
-      console.log("App suspended for:", installation.account.login);
-      // TODO: Mark installation as suspended
-      break;
-    case "unsuspend":
-      console.log("App unsuspended for:", installation.account.login);
-      // TODO: Mark installation as active
-      break;
-  }
-}
-
-async function handleInstallationRepositoriesEvent(payload: any) {
-  const { action, installation, repositories_added, repositories_removed } =
-    payload;
-
-  console.log("Installation repositories event:", {
-    action,
-    installationId: installation.id,
-    account: installation.account.login,
-    repositoriesAdded: repositories_added?.length || 0,
-    repositoriesRemoved: repositories_removed?.length || 0,
+  // Installation Repositories events
+  app.webhooks.on("installation_repositories.added", async ({ payload }) => {
+    console.log("Installation repositories added:", payload);
+  });
+  app.webhooks.on("installation_repositories.removed", async ({ payload }) => {
+    console.log("Installation repositories removed:", payload);
   });
 
-  // TODO: Implement repository access changes
-  // When repositories are added/removed from the installation:
-  // 1. Add new repositories to the database
-  // 2. Remove repositories that are no longer accessible
-  // 3. Update organization-repository relationships
-
-  switch (action) {
-    case "added":
-      console.log(
-        "Repositories added:",
-        repositories_added?.map((r: any) => r.full_name)
-      );
-      // TODO: Store newly added repositories
-      break;
-    case "removed":
-      console.log(
-        "Repositories removed:",
-        repositories_removed?.map((r: any) => r.full_name)
-      );
-      // TODO: Remove repository access
-      break;
-  }
-}
-
-async function handleRepositoryEvent(payload: any) {
-  const { action, repository, installation } = payload;
-
-  console.log("Repository event:", {
-    action,
-    repository: repository.full_name,
-    installationId: installation?.id,
+  // Issue events
+  app.webhooks.on("issues.assigned", async ({ payload }) => {
+    console.log("Issue assigned:", payload);
+  });
+  app.webhooks.on("issues.closed", async ({ payload }) => {
+    console.log("Issue closed:", payload);
+  });
+  app.webhooks.on("issues.deleted", async ({ payload }) => {
+    console.log("Issue deleted:", payload);
+  });
+  app.webhooks.on("issues.demilestoned", async ({ payload }) => {
+    console.log("Issue demilestoned:", payload);
+  });
+  app.webhooks.on("issues.edited", async ({ payload }) => {
+    console.log("Issue edited:", payload);
+  });
+  app.webhooks.on("issues.labeled", async ({ payload }) => {
+    console.log("Issue labeled:", payload);
+  });
+  app.webhooks.on("issues.locked", async ({ payload }) => {
+    console.log("Issue locked:", payload);
+  });
+  app.webhooks.on("issues.milestoned", async ({ payload }) => {
+    console.log("Issue milestoned:", payload);
+  });
+  app.webhooks.on("issues.opened", async ({ payload }) => {
+    console.log("Issue opened:", payload);
+  });
+  app.webhooks.on("issues.pinned", async ({ payload }) => {
+    console.log("Issue pinned:", payload);
+  });
+  app.webhooks.on("issues.reopened", async ({ payload }) => {
+    console.log("Issue reopened:", payload);
+  });
+  app.webhooks.on("issues.transferred", async ({ payload }) => {
+    console.log("Issue transferred:", payload);
+  });
+  app.webhooks.on("issues.typed", async ({ payload }) => {
+    console.log("Issue typed:", payload);
+  });
+  app.webhooks.on("issues.unassigned", async ({ payload }) => {
+    console.log("Issue unassigned:", payload);
+  });
+  app.webhooks.on("issues.unlabeled", async ({ payload }) => {
+    console.log("Issue unlabeled:", payload);
+  });
+  app.webhooks.on("issues.unlocked", async ({ payload }) => {
+    console.log("Issue unlocked:", payload);
+  });
+  app.webhooks.on("issues.unpinned", async ({ payload }) => {
+    console.log("Issue unpinned:", payload);
+  });
+  app.webhooks.on("issues.untyped", async ({ payload }) => {
+    console.log("Issue untyped:", payload);
   });
 
-  // TODO: Implement repository changes
-  // When repository metadata changes:
-  // 1. Update repository information in the database
-  // 2. Handle repository renames, transfers, etc.
+  // Repository events
+  app.webhooks.on("repository.archived", async ({ payload }) => {
+    console.log("Repository archived:", payload);
+  });
+  app.webhooks.on("repository.created", async ({ payload }) => {
+    console.log("Repository created:", payload);
+  });
+  app.webhooks.on("repository.deleted", async ({ payload }) => {
+    console.log("Repository deleted:", payload);
+  });
+  app.webhooks.on("repository.edited", async ({ payload }) => {
+    console.log("Repository edited:", payload);
+  });
+  app.webhooks.on("repository.privatized", async ({ payload }) => {
+    console.log("Repository privatized:", payload);
+  });
+  app.webhooks.on("repository.publicized", async ({ payload }) => {
+    console.log("Repository publicized:", payload);
+  });
+  app.webhooks.on("repository.renamed", async ({ payload }) => {
+    console.log("Repository renamed:", payload);
+  });
+  app.webhooks.on("repository.transferred", async ({ payload }) => {
+    console.log("Repository transferred:", payload);
+  });
+  app.webhooks.on("repository.unarchived", async ({ payload }) => {
+    console.log("Repository unarchived:", payload);
+  });
 
-  switch (action) {
-    case "created":
-      console.log("Repository created:", repository.full_name);
-      // TODO: Add new repository to database
-      break;
-    case "deleted":
-      console.log("Repository deleted:", repository.full_name);
-      // TODO: Remove repository from database
-      break;
-    case "renamed":
-      console.log("Repository renamed:", repository.full_name);
-      // TODO: Update repository name in database
-      break;
-    case "transferred":
-      console.log("Repository transferred:", repository.full_name);
-      // TODO: Update repository ownership
-      break;
-  }
-}
+  await app.webhooks.verifyAndReceive({
+    id,
+    name,
+    signature,
+    payload,
+  });
+
+  return new Response("ok");
+};
+
+export { handler as GET, handler as POST };

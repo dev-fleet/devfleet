@@ -15,7 +15,7 @@
     "db:dev:push": "drizzle-kit push",
     "db:dev:generate": "drizzle-kit generate",
     "db:dev:drop": "tsx ./src/db/delete-tables.dev.ts",
-    "db:dev:reset": "npm run db:dev:drop && npm run db:migrate",
+    "db:dev:reset": "npm run db:dev:drop && npm run db:dev:push",
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {

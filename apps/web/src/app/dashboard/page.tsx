@@ -14,12 +14,6 @@ import {
 import { InsetHeader } from "@/components/sidebar/inset-header";
 
 export default async function DashboardPage() {
-  const session = await getSession();
-
-  if (!session) {
-    redirect("/login");
-  }
-
   return (
     <>
       <InsetHeader title="Home" />

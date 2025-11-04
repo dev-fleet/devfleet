@@ -7,9 +7,10 @@ import {
 } from "@workspace/ui/components/card";
 import { CheckCircle2 } from "lucide-react";
 import { IconGithubLogo } from "@workspace/ui/components/github-logo";
-import { GitHubActionButtons } from "./github-action-buttons";
+import { Button } from "@workspace/ui/components/button";
+import { completeOnboarding } from "@/actions/onboarding";
 
-export default function GitHubOnboardingPage() {
+export default function AgentOnboardingPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
@@ -19,7 +20,7 @@ export default function GitHubOnboardingPage() {
         </div>
         <h1 className="text-3xl font-bold">Connect Your GitHub Repositories</h1>
         <p className="text-lg text-muted-foreground">
-          Connect your GitHub repositories and start shipping with DevFleet.
+          Connect your GitHub repositories and start building with DevFleet.
         </p>
       </div>
 
@@ -30,8 +31,8 @@ export default function GitHubOnboardingPage() {
             GitHub Integration
           </CardTitle>
           <CardDescription>
-            We'll need access to your GitHub repositories to help you with your
-            development workflow.
+            We&rsquo;ll need access to your GitHub repositories to help you with
+            your development workflow.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -55,11 +56,17 @@ export default function GitHubOnboardingPage() {
               </li>
             </ul>
           </div>
-
-          {/* Action buttons */}
-          <GitHubActionButtons />
         </CardContent>
       </Card>
+
+      {/* Skip button */}
+      <div className="flex justify-end">
+        <form action={completeOnboarding}>
+          <Button type="submit" variant="ghost">
+            Skip this step
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
