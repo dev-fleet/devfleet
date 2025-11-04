@@ -1,10 +1,9 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useUser } from "@/lib/swr/user";
-import { useOrganizations } from "@/lib/swr/organizations";
+import { useUser } from "@/hooks/useUser";
 import { setActiveOrganization } from "@/actions/organization";
-import { getNameInitials } from "@/lib/utils";
+import { getNameInitials } from "@/utils/string";
 import { useSidebar } from "@workspace/ui/components/sidebar";
 import { toast } from "sonner";
 import { mutate } from "swr";
@@ -30,15 +29,13 @@ import { env } from "@/env.mjs";
 const DICEBEAR_AVATAR_URL = "https://api.dicebear.com/9.x/initials/svg?seed=";
 
 export function OrganizationSwitcher() {
-  const { user, isLoading: isUserLoading } = useUser();
-  const { data: organizations, isLoading: isOrgsLoading } = useOrganizations();
+  const { data: user, isLoading: isUserLoading } = useUser();
   const { isMobile } = useSidebar();
 
-  const isLoading = isUserLoading || isOrgsLoading;
-  const activeOrganization = user?.activeOrganization;
+  const isLoading = isUserLoading;
 
   const handleOrganizationSwitch = async (orgId: string) => {
-    const org = organizations?.find((o) => o.id === orgId);
+    const org = user?.organizations?.find((o) => o.id === orgId);
     if (!org) return;
 
     try {

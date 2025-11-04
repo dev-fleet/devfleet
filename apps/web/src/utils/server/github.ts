@@ -1,7 +1,7 @@
-"use server";
+import "server-only";
 
 import { Octokit } from "octokit";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/utils/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import {
@@ -217,6 +217,7 @@ import { buildConflictUpdateColumns } from "@/db/helpers";
 // }
 
 // TODO: Add role fetching later.
+// TODO: Better Auth drizzle adapter can't handle transactions. Needs investigation.
 export async function syncUserOrgsAndMemberships(
   userId: string,
   accessToken: string

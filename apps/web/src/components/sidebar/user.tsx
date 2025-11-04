@@ -22,8 +22,8 @@ import {
   useSidebar,
 } from "@workspace/ui/components/sidebar";
 
-import { getNameInitials } from "@/lib/utils";
-import { signOut, useSession } from "@/lib/auth-client";
+import { getNameInitials } from "@/utils/string";
+import { signOut, useSession } from "@/utils/auth-client";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 

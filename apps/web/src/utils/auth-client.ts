@@ -1,10 +1,10 @@
 import { inferAdditionalFields } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { toast } from "sonner";
-import { auth } from "./auth";
+import { getSession } from "./auth";
 
 export const client = createAuthClient({
-  plugins: [inferAdditionalFields<typeof auth>()],
+  plugins: [inferAdditionalFields<typeof getSession>()],
   fetchOptions: {
     onError(e) {
       if (e.error.status === 429) {

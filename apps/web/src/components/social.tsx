@@ -1,6 +1,6 @@
 "use client";
 
-import { signIn } from "@/lib/auth-client";
+import { signIn } from "@/utils/auth-client";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@workspace/ui/components/button";
 import { useEffect } from "react";

@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { LucideGithub } from "lucide-react";
-import { signIn } from "@/lib/auth-client";
+import { signIn } from "@/utils/auth-client";
 import { env } from "@/env.mjs";
 
 import { Button } from "@workspace/ui/components/button";
@@ -45,7 +45,7 @@ export default function LoginDialog({
           className="w-full"
           onClick={async () => {
             await signIn.social({
-              provider: "github"
+              provider: "github",
             });
           }}
         >

@@ -3,17 +3,11 @@
 import { useState } from "react";
 import { Button } from "@workspace/ui/components/button";
 import { ChevronDown, Plus, RefreshCw } from "lucide-react";
-import { useUser } from "@/lib/swr/user";
-import { useOrganizations } from "@/lib/swr/organizations";
+import { useUser } from "@/hooks/useUser";
 import { setActiveOrganization } from "@/actions/organization";
 import { toast } from "sonner";
-import { mutate } from "swr";
 import { env } from "@/env.mjs";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
+import { Avatar, AvatarImage } from "@workspace/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,22 +20,26 @@ import {
 const DICEBEAR_AVATAR_URL = "https://api.dicebear.com/9.x/initials/svg?seed=";
 
 export function GitHubActionButtons() {
-  const { user, isLoading: isUserLoading } = useUser();
-  const { data: organizations, isLoading: isOrgsLoading } = useOrganizations();
+  const { data: user, isLoading: isUserLoading, mutate } = useUser();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const isLoading = isUserLoading || isOrgsLoading;
-  const activeOrganization = user?.activeOrganization;
+  const isLoading = isUserLoading;
+  const userOrganizations = user?.organizations;
+  const activeOrganization =
+    userOrganizations?.find((o) => o.id === user?.defaultGhOrganizationId) ||
+    (!user?.defaultGhOrganizationId && userOrganizations
+      ? userOrganizations.find((o) => o.organizationType === "USER")
+      : undefined);
 
   const handleOrganizationSwitch = async (orgId: string) => {
-    const org = organizations?.find((o) => o.id === orgId);
+    const org = user?.organizations?.find((o) => o.id === orgId);
     if (!org) return;
 
     try {
       const result = await setActiveOrganization(orgId);
       if (result.success) {
         // Revalidate the user data to get the updated active organization
-        mutate("/api/me");
+        mutate();
       } else {
         toast.error(result.message || "Failed to switch organization");
       }
@@ -82,10 +80,11 @@ export function GitHubActionButtons() {
   };
 
   const handleConnect = () => {
-    if (activeOrganization?.githubId) {
-      const url = `${env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL}/permissions?target_id=${activeOrganization.githubId}`;
-      window.location.href = url;
-    }
+    const organizationId = activeOrganization?.organizationId;
+    if (!organizationId) return;
+
+    const url = `${env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL}/permissions?target_id=${organizationId}`;
+    window.location.href = url;
   };
 
   if (isLoading) {
@@ -105,7 +104,7 @@ export function GitHubActionButtons() {
     );
   }
 
-  if (!activeOrganization || !organizations) {
+  if (userOrganizations?.length === 0 || !activeOrganization) {
     return (
       <div className="flex gap-3 pt-4">
         <div className="flex-1">
@@ -154,27 +153,28 @@ export function GitHubActionButtons() {
                 <Avatar className="size-5">
                   <AvatarImage
                     src={
-                      activeOrganization.type === "User"
+                      activeOrganization.organizationType === "USER"
                         ? `${env.NEXT_PUBLIC_URL}/github-mark.svg`
                         : activeOrganization.avatarUrl ||
                           `${DICEBEAR_AVATAR_URL}${activeOrganization.login}`
                     }
                     alt={
-                      activeOrganization.type === "User"
+                      activeOrganization.organizationType === "USER"
                         ? "GitHub"
-                        : activeOrganization.name || activeOrganization.login
+                        : activeOrganization.displayName ||
+                          activeOrganization.login
                     }
                   />
                 </Avatar>
                 <span className="truncate">
-                  {activeOrganization.name || activeOrganization.login}
+                  {activeOrganization.displayName || activeOrganization.login}
                 </span>
               </div>
               <ChevronDown className="size-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-full min-w-56" align="start">
-            {organizations && organizations.length > 1 && (
+            {userOrganizations && userOrganizations.length > 1 && (
               <>
                 <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1.5">
                   <div className="flex items-center justify-between">
@@ -203,7 +203,7 @@ export function GitHubActionButtons() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {organizations.map((org) => (
+                {userOrganizations.map((org) => (
                   <DropdownMenuItem
                     key={org.id}
                     onClick={() => handleOrganizationSwitch(org.id)}
@@ -212,29 +212,33 @@ export function GitHubActionButtons() {
                     <Avatar className="size-6">
                       <AvatarImage
                         src={
-                          org.type === "User"
+                          org.organizationType === "USER"
                             ? `${env.NEXT_PUBLIC_URL}/github-mark.svg`
                             : org.avatarUrl ||
                               `${DICEBEAR_AVATAR_URL}${org.login}`
                         }
                         alt={
-                          org.type === "User" ? "GitHub" : org.name || org.login
+                          org.organizationType === "USER"
+                            ? "GitHub"
+                            : org.displayName || org.login
                         }
                       />
                     </Avatar>
                     <div className="flex flex-col">
                       <span className="font-medium">
-                        {org.name || org.login}
+                        {org.displayName || org.login}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {org.type === "User" ? "Personal" : "Organization"}
+                        {org.organizationType === "USER"
+                          ? "Personal"
+                          : "Organization"}
                       </span>
                     </div>
                   </DropdownMenuItem>
                 ))}
               </>
             )}
-            {organizations && organizations.length > 1 && (
+            {userOrganizations && userOrganizations.length > 1 && (
               <DropdownMenuSeparator />
             )}
             <DropdownMenuItem

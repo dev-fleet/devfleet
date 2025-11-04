@@ -1,14 +1,15 @@
 import { db } from "@/db";
 import { env } from "@/env.mjs";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/utils/auth";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { Octokit, OAuthApp } from "octokit";
 import { organizations, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { fetchRepositoriesFromGitHubApp } from "@/actions/github";
+import { withAuth } from "@/utils/middleware";
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req) => {
   // Parse the URL to get query parameters
   const { searchParams } = new URL(req.url);
 
@@ -22,22 +23,14 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   // Get the active organization ID
   const user = await db
     .select()
     .from(users)
-    .where(eq(users.id, session.user.id))
+    .where(eq(users.id, req.auth.userId))
     .limit(1);
 
-  const activeOrganizationId = user[0]?.activeOrganizationId;
+  const activeOrganizationId = user[0]?.defaultGhOrganizationId;
 
   // This should never happen but just in case
   if (!activeOrganizationId) {
@@ -142,4 +135,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

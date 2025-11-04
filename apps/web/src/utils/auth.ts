@@ -2,9 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import { env } from "@/env.mjs";
-import { syncUserOrgsAndMemberships } from "@/actions/github";
+import { syncUserOrgsAndMemberships } from "@/utils/server/github";
 // import { sendInternalSlackNotification } from "./server/utils";
 import { after } from "next/server";
+import { headers } from "next/headers";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -59,3 +60,6 @@ export const auth = betterAuth({
     },
   },
 });
+
+export const getSession = async () =>
+  auth.api.getSession({ headers: await headers() });
