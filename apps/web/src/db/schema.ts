@@ -128,34 +128,14 @@ export const ghOrganizations = pgTable(
     login: text("login").notNull(),
     displayName: text("display_name"),
     avatarUrl: text("avatar_url"),
+    // Organizations install the Github App to give access to their repositories/prs
+    githubAppInstallationId: text("github_app_installation_id"),
+    githubAppAccessToken: text("github_app_access_token"),
     ...timestamps,
   },
   (table) => [
     uniqueIndex("gh_organizations_organization_id_uq").on(table.organizationId),
     index("gh_organizations_login_idx").on(table.login),
-  ]
-);
-
-export const installations = pgTable(
-  "installations",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    ghOrganizationId: text("gh_organization_id")
-      .notNull()
-      .references(() => ghOrganizations.id),
-    githubInstallationId: text("github_installation_id").notNull(),
-    targetType: text("target_type", {
-      enum: ["USER", "ORG"],
-    }).notNull(),
-    permissions: jsonb("permissions"),
-    suspended: boolean("suspended").default(false).notNull(),
-    ...timestamps,
-  },
-  (table) => [
-    uniqueIndex("installations_github_id_uq").on(table.githubInstallationId),
-    index("installations_organization_idx").on(table.ghOrganizationId),
   ]
 );
 
@@ -165,9 +145,6 @@ export const repositories = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    ownerGhOrganizationId: text("owner_gh_organization_id")
-      .notNull()
-      .references(() => ghOrganizations.id),
     githubId: text("github_id").notNull(),
     name: text("name").notNull(),
     fullName: text("full_name").notNull(),
@@ -184,6 +161,9 @@ export const repositories = pgTable(
     visibility: text("visibility").notNull().default("private"), // 'public', 'private', 'internal'
     archived: boolean("archived").notNull().default(false),
     disabled: boolean("disabled").notNull().default(false),
+    ownerGhOrganizationId: text("owner_gh_organization_id")
+      .notNull()
+      .references(() => ghOrganizations.id, { onDelete: "cascade" }),
     ...timestamps,
   },
   (table) => [
@@ -225,39 +205,6 @@ export const userGhOrganizationMemberships = pgTable(
     ),
   ]
 );
-
-// export const repositories = pgTable(
-//   "repositories",
-//   {
-//     id: text("id")
-//       .primaryKey()
-//       .$defaultFn(() => createId()),
-//     githubId: text("github_id").notNull().unique(),
-//     name: text("name").notNull(),
-//     fullName: text("full_name").notNull(),
-//     description: text("description"),
-//     private: boolean("private").notNull().default(false),
-//     htmlUrl: text("html_url").notNull(),
-//     cloneUrl: text("clone_url").notNull(),
-//     sshUrl: text("ssh_url").notNull(),
-//     defaultBranch: text("default_branch").notNull().default("main"),
-//     language: text("language"),
-//     stargazersCount: integer("stargazers_count").default(0),
-//     forksCount: integer("forks_count").default(0),
-//     openIssuesCount: integer("open_issues_count").default(0),
-//     visibility: text("visibility").notNull().default("private"), // 'public', 'private', 'internal'
-//     archived: boolean("archived").notNull().default(false),
-//     disabled: boolean("disabled").notNull().default(false),
-//     pushedAt: timestamp("pushed_at"),
-//     organizationId: text("organization_id")
-//       .notNull()
-//       .references(() => organizations.id, { onDelete: "cascade" }),
-//     ...timestamps,
-//   },
-//   (table) => [
-//     index("repositories_organization_id_idx").on(table.organizationId),
-//   ]
-// );
 
 /*************************************************************************
  *
@@ -343,7 +290,5 @@ export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type GhOrganization = typeof ghOrganizations.$inferSelect;
 export type NewGhOrganization = typeof ghOrganizations.$inferInsert;
-export type Installation = typeof installations.$inferSelect;
-export type NewInstallation = typeof installations.$inferInsert;
 export type Repository = typeof repositories.$inferSelect;
 export type NewRepository = typeof repositories.$inferInsert;

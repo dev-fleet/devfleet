@@ -4,9 +4,9 @@ import { getSession } from "@/utils/auth";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { Octokit, OAuthApp } from "octokit";
-import { organizations, users } from "@/db/schema";
+import { ghOrganizations, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { fetchRepositoriesFromGitHubApp } from "@/actions/github";
+import { fetchRepositoriesFromGitHubApp } from "../helpers";
 import { withAuth } from "@/utils/middleware";
 
 export const GET = withAuth(async (req) => {
@@ -43,8 +43,8 @@ export const GET = withAuth(async (req) => {
   // Check if the organization already has GitHub app credentials
   const organization = await db
     .select()
-    .from(organizations)
-    .where(eq(organizations.id, activeOrganizationId))
+    .from(ghOrganizations)
+    .where(eq(ghOrganizations.id, activeOrganizationId))
     .limit(1);
 
   if (
@@ -93,12 +93,12 @@ export const GET = withAuth(async (req) => {
 
     // Save the GitHub app installation ID to the organization
     await db
-      .update(organizations)
+      .update(ghOrganizations)
       .set({
         githubAppInstallationId: installationId,
         updatedAt: new Date(),
       })
-      .where(eq(organizations.id, activeOrganizationId));
+      .where(eq(ghOrganizations.id, activeOrganizationId));
 
     // Fetch all repositories the GitHub app has access to and save them to database
     const fetchResult = await fetchRepositoriesFromGitHubApp(
@@ -120,7 +120,7 @@ export const GET = withAuth(async (req) => {
           onboardingStep: "environment",
           updatedAt: new Date(),
         })
-        .where(eq(users.id, session.user.id));
+        .where(eq(users.id, user[0]?.id));
     }
 
     // Redirects to dashboard

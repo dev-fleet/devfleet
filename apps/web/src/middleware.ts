@@ -12,7 +12,7 @@ export const config = {
      * 3. /_static (inside /public)
      * 4. all root files inside /public (e.g. /favicon.ico)
      */
-    "/((?!api/|_next/|_static/|_vercel|images/|_proxy/|[\\w-]+\\.\\w+).*)",
+    "/((?!api/|_next/|_static/|_vercel|images/|_proxy/|.well-known/workflow/|[\\w-]+\\.\\w+).*)",
   ],
 };
 

@@ -6,7 +6,8 @@
    1. Homepage URL: http://localhost:3001
    1. Callback URL: http://localhost:3001/api/github-app/callback
    1. Check "Request user authorization (OAuth) during installation"
-   1. Webhook URL: https://example.com
+   1. Webhook
+      1. Enter your ngrok url: https://{your-url}.ngrok-free.app/api/github-app/hooks
    1. Permissions:
       - Repository permissions:
         - Contents: Read and Write
@@ -61,3 +62,9 @@ You need to download the pem file from the github application settings and run t
 
 When you make some changes on the `schema.ts`, it's important to create migrations. When working locally, you can run `npm run db:dev:push` to make sure your local database matches the table descriptions in the schema file. Once you verify the changes, you can create the SQL migrations by running `npm run db:dev:generate`. This will generate a new file under the db/migrations folder. After this file is created, you can apply the migration by running `npm run db:migrate`. We currently dont have an automated way to applying new database migrations, you need to apply them manually by running the script.
 
+## Setting Up ngrok / Working with webhooks
+
+You need a public gateway to be able to use github webhooks. [ngrok](https://ngrok.com) free tier is enough for the local dev work. Create an account and download the binary for your operating system.
+
+Finally, run the gateway with your reserved url (eg):  
+`ngrok http 3001 --url mallard-ace-easily.ngrok-free.app`
