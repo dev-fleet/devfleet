@@ -7,6 +7,7 @@ import {
   index,
   primaryKey,
   jsonb,
+  numeric,
   customType,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -29,6 +30,14 @@ const timestamps = {
 
 // const TASK_STATUSES = ["ACTIVE", "PAUSED", "TERMINATED"] as const;
 const ONBOARDING_STEPS = ["github", "agent", "completed"] as const;
+const PR_STATUSES = ["open", "closed", "merged", "draft"] as const;
+const PR_CHECK_RUN_STATUSES = [
+  "pass",
+  "fail",
+  "error",
+  "skipped",
+  "cancelled",
+] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -201,11 +210,163 @@ export const userGhOrganizationMemberships = pgTable(
   ]
 );
 
+export const pullRequests = pgTable(
+  "pull_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    repoId: text("repo_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    prNumber: integer("pr_number").notNull(),
+    title: text("title").notNull(),
+    authorLogin: text("author_login").notNull(),
+    state: text("state", { enum: PR_STATUSES }).notNull().default("open"),
+    baseSha: text("base_sha").notNull(),
+    headSha: text("head_sha").notNull(),
+    htmlUrl: text("html_url"),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("pull_requests_repo_prnum_uq").on(t.repoId, t.prNumber),
+    index("pull_requests_repo_idx").on(t.repoId),
+    index("pull_requests_state_idx").on(t.state),
+  ]
+);
+
+export const agents = pgTable(
+  "agents",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    name: text("name").notNull(),
+    prompt: text("prompt").notNull(),
+    engine: text("engine", {
+      enum: ["anthropic", "openai"],
+    })
+      .notNull()
+      .default("anthropic"),
+    archived: boolean("archived").notNull().default(false),
+    description: text("description"),
+    ownerGhOrganizationId: text("owner_gh_organization_id")
+      .notNull()
+      .references(() => ghOrganizations.id, { onDelete: "cascade" }),
+    ...timestamps,
+  },
+  (table) => [index("agents_archived_idx").on(table.archived)]
+);
+
+export const repoAgents = pgTable(
+  "repo_agents",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    // denormalize org for fast scoping and easy uniqueness guards
+    ownerGhOrganizationId: text("owner_gh_organization_id")
+      .notNull()
+      .references(() => ghOrganizations.id, { onDelete: "cascade" }),
+    repoId: text("repo_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    order: integer("order").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    // One agent can be attached at most once per repo
+    uniqueIndex("repo_agents_repo_agent_uq").on(table.repoId, table.agentId),
+    // Helpful composite for org-scoped queries
+    index("repo_agents_org_repo_idx").on(
+      table.ownerGhOrganizationId,
+      table.repoId
+    ),
+    index("repo_agents_org_agent_idx").on(
+      table.ownerGhOrganizationId,
+      table.agentId
+    ),
+    index("repo_agents_enabled_idx").on(table.enabled),
+  ]
+);
+
+export const prCheckRuns = pgTable(
+  "pr_check_runs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    repoId: text("repo_id")
+      .notNull()
+      .references(() => repositories.id, { onDelete: "cascade" }),
+    prId: text("pr_id")
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: "cascade" }),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+
+    status: text("status", { enum: PR_CHECK_RUN_STATUSES }).notNull(),
+    message: text("message").notNull(),
+    patch: text("patch"),
+    runtimeMs: integer("runtime_ms").notNull(),
+    costUsd: numeric("cost_usd", { precision: 10, scale: 4 }),
+    tokensIn: integer("tokens_in"),
+    tokensOut: integer("tokens_out"),
+    cacheHit: boolean("cache_hit").default(false),
+    rawOutput: jsonb("raw_output"),
+    errorType: text("error_type"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("pr_check_runs_pr_idx").on(table.prId),
+    index("pr_check_runs_agent_idx").on(table.agentId),
+    index("pr_check_runs_status_idx").on(table.status),
+    index("pr_check_runs_created_idx").on(table.createdAt),
+  ]
+);
+
 /*************************************************************************
  *
  *                           RELATIONS
  *
  *************************************************************************/
+
+export const agentsRelations = relations(agents, ({ one, many }) => ({
+  org: one(ghOrganizations, {
+    fields: [agents.ownerGhOrganizationId],
+    references: [ghOrganizations.id],
+  }),
+  repoAgents: many(repoAgents),
+  runs: many(prCheckRuns),
+}));
+
+export const pullRequestsRelations = relations(
+  pullRequests,
+  ({ one, many }) => ({
+    repo: one(repositories, {
+      fields: [pullRequests.repoId],
+      references: [repositories.id],
+    }),
+    runs: many(prCheckRuns),
+  })
+);
+
+export const repoAgentsRelations = relations(repoAgents, ({ one }) => ({
+  org: one(ghOrganizations, {
+    fields: [repoAgents.ownerGhOrganizationId],
+    references: [ghOrganizations.id],
+  }),
+  repo: one(repositories, {
+    fields: [repoAgents.repoId],
+    references: [repositories.id],
+  }),
+  agent: one(agents, { fields: [repoAgents.agentId], references: [agents.id] }),
+}));
 
 // export const organizationRepositories = relations(
 //   organizations,
