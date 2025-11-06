@@ -438,7 +438,8 @@ export const repoAgentsRelations = relations(repoAgents, ({ one }) => ({
 
 // export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
-// export type PrStatus = (typeof PR_STATUSES)[number];
+export type PrStatus = (typeof PR_STATUSES)[number];
+export type PrCheckRunStatus = (typeof PR_CHECK_RUN_STATUSES)[number];
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -448,3 +449,11 @@ export type GhOrganization = typeof ghOrganizations.$inferSelect;
 export type NewGhOrganization = typeof ghOrganizations.$inferInsert;
 export type Repository = typeof repositories.$inferSelect;
 export type NewRepository = typeof repositories.$inferInsert;
+export type PullRequest = typeof pullRequests.$inferSelect;
+export type NewPullRequest = typeof pullRequests.$inferInsert;
+export type Agent = typeof agents.$inferSelect;
+export type NewAgent = typeof agents.$inferInsert;
+export type RepoAgent = typeof repoAgents.$inferSelect;
+export type NewRepoAgent = typeof repoAgents.$inferInsert;
+export type PrCheckRun = typeof prCheckRuns.$inferSelect;
+export type NewPrCheckRun = typeof prCheckRuns.$inferInsert;
