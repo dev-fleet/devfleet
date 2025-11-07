@@ -8,7 +8,7 @@
    1. Check "Request user authorization (OAuth) during installation"
    1. Webhook
       1. Enter your ngrok url: https://{your-url}.ngrok-free.app/api/github-app/webhook
-   1. Permissions:
+   1. Permissions (currently over permissive):
       - Repository permissions:
         - Contents: Read and Write
         - Issues: Read and Write
@@ -17,6 +17,7 @@
         - Issue comment
         - Issues
         - Pull request
+      - Checks: Read and Write
    1. Set in .env: `GITHUB_APP_ID=<App ID>`
    1. Set in .env: `GITHUB_APP_CLIENT_ID=<Client ID>`
    1. Set in .env: `GITHUB_APP_WEBHOOK_SECRET=<Webhook Secret>`

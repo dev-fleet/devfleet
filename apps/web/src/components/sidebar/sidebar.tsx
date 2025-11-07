@@ -9,6 +9,7 @@ import {
   Home,
   Container,
   GitBranch,
+  BotIcon,
 } from "lucide-react";
 import { Discord } from "@workspace/ui/icons/discord";
 import { NavMain } from "@/components/sidebar/main";
@@ -41,6 +42,11 @@ export const AppSidebar = ({
             title: "Repositories",
             url: `/repositories`,
             icon: GitBranch,
+          },
+          {
+            title: "Agents",
+            url: `/agents`,
+            icon: BotIcon,
           },
         ],
       },

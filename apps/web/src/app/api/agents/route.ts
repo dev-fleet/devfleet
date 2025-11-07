@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
-import { agents, users } from "@/db/schema";
+import { agents, repoAgents, users } from "@/db/schema";
 
 async function getOrganizationAgents(userId: string) {
   const user = await db
@@ -23,11 +23,22 @@ async function getOrganizationAgents(userId: string) {
       name: agents.name,
       description: agents.description,
       engine: agents.engine,
+      updatedAt: agents.updatedAt,
+      reposUsingCount: sql<number>`count(${repoAgents.id})`,
+      enabledReposCount: sql<number>`coalesce(sum(case when ${repoAgents.enabled} then 1 else 0 end), 0)`,
     })
     .from(agents)
+    .leftJoin(
+      repoAgents,
+      and(
+        eq(repoAgents.agentId, agents.id),
+        eq(repoAgents.ownerGhOrganizationId, orgId)
+      )
+    )
     .where(
       and(eq(agents.ownerGhOrganizationId, orgId), eq(agents.archived, false))
     )
+    .groupBy(agents.id)
     .orderBy(agents.name);
 
   return orgAgents;
