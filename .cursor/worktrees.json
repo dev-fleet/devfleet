@@ -1,5 +1,5 @@
 {
-  "setup-worktree": [
-    "npm install"
-  ]
+  "setup-worktree": ["pnpm install"],
+  "cursor.worktreeCleanupIntervalHours": 6,
+  "cursor.worktreeMaxCount": 20
 }
