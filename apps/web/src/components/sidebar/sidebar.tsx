@@ -51,21 +51,6 @@ export const AppSidebar = ({
         ],
       },
       {
-        title: "Configuration",
-        items: [
-          {
-            title: "Environments",
-            url: `/environments`,
-            icon: Container,
-          },
-          {
-            title: "Settings",
-            url: `/settings`,
-            icon: Settings,
-          },
-        ],
-      },
-      {
         title: "Support",
         items: [
           {
