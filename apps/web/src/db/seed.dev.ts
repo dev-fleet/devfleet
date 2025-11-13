@@ -1,3 +1,4 @@
+import { env } from "@/env.mjs";
 import { db } from "./index";
 import { agentTypes, agentTypeRules } from "./schema";
 import { createId } from "@paralleldrive/cuid2";
@@ -315,16 +316,21 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
   console.log("✅ Agent types and rules seeded successfully!");
 }
 
-// Run seed if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedAgentTypes()
-    .then(() => {
-      console.log("Seeding complete");
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("Seeding failed:", error);
-      process.exit(1);
-    });
-}
+const seed = async () => {
+  if (env.NODE_ENV !== "development") {
+    throw new Error("This script can only be used in development mode.");
+  }
 
+  await seedAgentTypes();
+};
+
+seed()
+  .then(() => {
+    console.log("✨ Database Seeded successfully!");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("❌ Database Seeding failed.");
+    console.error(error);
+    process.exit(1);
+  });
