@@ -5,6 +5,7 @@ import { useAgentDetail } from "@/utils/swr/agents";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Button } from "@workspace/ui/components/button";
+import { Badge } from "@workspace/ui/components/badge";
 import {
   Select,
   SelectContent,
@@ -22,7 +23,8 @@ import {
 } from "@workspace/ui/components/table";
 import { Card } from "@workspace/ui/components/card";
 import { toast } from "sonner";
-import { updateAgent } from "@/actions/agents";
+import { updateAgent, toggleAgentRule, bulkUpdateAgentRules } from "@/actions/agents";
+import { AgentRulesManager } from "@/components/agent-rules-manager";
 import Link from "next/link";
 import {
   Dialog,
@@ -36,8 +38,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
 
   const [name, setName] = useState("");
   const [engine, setEngine] = useState<"anthropic" | "openai">("anthropic");
-  const [prompt, setPrompt] = useState("");
-  const [languageFilter, setLanguageFilter] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [testDiff, setTestDiff] = useState("");
@@ -46,8 +47,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     if (!data?.agent) return;
     setName(data.agent.name);
     setEngine(data.agent.engine as any);
-    setPrompt(data.agent.prompt);
-    setLanguageFilter(data.agent.description ?? "");
+    setDescription(data.agent.description ?? "");
   }, [data]);
 
   const onSave = useCallback(async () => {
@@ -55,9 +55,8 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
       setSaving(true);
       await updateAgent(agentId, {
         name: name.trim(),
-        prompt: prompt.trim(),
         engine,
-        languageFilter: languageFilter.trim() || null,
+        description: description.trim() || null,
       });
       toast.success("Agent saved");
       mutate();
@@ -66,24 +65,60 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     } finally {
       setSaving(false);
     }
-  }, [agentId, name, prompt, engine, languageFilter, mutate]);
+  }, [agentId, name, engine, description, mutate]);
+
+  const handleToggleRule = useCallback(
+    async (ruleId: string) => {
+      try {
+        await toggleAgentRule(agentId, ruleId);
+        mutate();
+      } catch (e) {
+        toast.error("Failed to toggle rule");
+      }
+    },
+    [agentId, mutate]
+  );
+
+  const handleBulkUpdateRules = useCallback(
+    async (updates: { ruleId: string; enabled: boolean }[]) => {
+      try {
+        await bulkUpdateAgentRules(agentId, updates);
+        toast.success("Rules updated");
+        mutate();
+      } catch (e) {
+        toast.error("Failed to update rules");
+      }
+    },
+    [agentId, mutate]
+  );
 
   const reposUsing = useMemo(() => data?.reposUsing ?? [], [data]);
   const recentRuns = useMemo(() => data?.recentRuns ?? [], [data]);
+  const rules = useMemo(() => data?.rules ?? [], [data]);
 
   return (
     <div className="grid gap-8">
+      {/* Agent Info Card */}
       <Card className="p-4 sm:p-6">
         <div className="grid gap-4">
+          {/* Agent Type Badge */}
+          {data?.agentType && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Type:</span>
+              <Badge variant="secondary">{data.agentType.name}</Badge>
+            </div>
+          )}
+
           <div className="grid gap-2">
             <label className="text-sm font-medium">Name</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
+
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Mode</label>
+            <label className="text-sm font-medium">Engine</label>
             <Select value={engine} onValueChange={(v) => setEngine(v as any)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select mode" />
+                <SelectValue placeholder="Select engine" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="anthropic">Anthropic</SelectItem>
@@ -91,25 +126,35 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Prompt</label>
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={12}
-              placeholder="System prompt for this agent"
-            />
-          </div>
+
           <div className="grid gap-2">
             <label className="text-sm font-medium">
-              Language filter (optional)
+              Description (optional)
             </label>
-            <Input
-              value={languageFilter}
-              onChange={(e) => setLanguageFilter(e.target.value)}
-              placeholder="e.g., TypeScript, Python"
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="Add a description"
             />
           </div>
+
+          {/* Base Prompt (Read-only) */}
+          {data?.agentType && (
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">
+                Base Prompt (from agent type)
+              </label>
+              <Textarea
+                value={data.agentType.basePrompt}
+                readOnly
+                disabled
+                rows={6}
+                className="resize-none"
+              />
+            </div>
+          )}
+
           <div className="flex gap-2 justify-end">
             <Button variant="outline" asChild>
               <Link href="/repositories">Go to repositories</Link>
@@ -122,6 +167,21 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
             </Button>
           </div>
         </div>
+      </Card>
+
+      {/* Rules Management Section */}
+      <Card className="p-4 sm:p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Rules</h2>
+          <p className="text-sm text-muted-foreground">
+            Enable or disable specific rules for this agent
+          </p>
+        </div>
+        <AgentRulesManager
+          rules={rules}
+          onToggleRule={handleToggleRule}
+          onBulkUpdate={handleBulkUpdateRules}
+        />
       </Card>
 
       <Dialog open={testOpen} onOpenChange={setTestOpen}>

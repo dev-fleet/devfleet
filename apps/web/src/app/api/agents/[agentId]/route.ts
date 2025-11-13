@@ -4,6 +4,9 @@ import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
 import {
   agents,
+  agentTypes,
+  agentTypeRules,
+  agentRules,
   prCheckRuns,
   pullRequests,
   repoAgents,
@@ -29,6 +32,7 @@ async function getAgentDetail(userId: string, agentId: string) {
     .select({
       id: agents.id,
       name: agents.name,
+      agentTypeId: agents.agentTypeId,
       prompt: agents.prompt,
       engine: agents.engine,
       archived: agents.archived,
@@ -48,6 +52,54 @@ async function getAgentDetail(userId: string, agentId: string) {
   if (!theAgent[0]) {
     throw new Error("Agent not found");
   }
+
+  // Get agent type information
+  const agentType = await db
+    .select({
+      id: agentTypes.id,
+      name: agentTypes.name,
+      slug: agentTypes.slug,
+      description: agentTypes.description,
+      basePrompt: agentTypes.basePrompt,
+      category: agentTypes.category,
+      icon: agentTypes.icon,
+    })
+    .from(agentTypes)
+    .where(eq(agentTypes.id, theAgent[0].agentTypeId))
+    .limit(1);
+
+  // Get all rules for this agent type with their enabled status
+  const rulesRaw = await db
+    .select({
+      id: agentTypeRules.id,
+      name: agentTypeRules.name,
+      description: agentTypeRules.description,
+      severity: agentTypeRules.severity,
+      category: agentTypeRules.category,
+      order: agentTypeRules.order,
+      agentRuleId: agentRules.id,
+      enabled: agentRules.enabled,
+    })
+    .from(agentTypeRules)
+    .leftJoin(
+      agentRules,
+      and(
+        eq(agentRules.agentTypeRuleId, agentTypeRules.id),
+        eq(agentRules.agentId, agentId)
+      )
+    )
+    .where(eq(agentTypeRules.agentTypeId, theAgent[0].agentTypeId))
+    .orderBy(agentTypeRules.order);
+
+  const rules = rulesRaw.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    severity: r.severity,
+    category: r.category,
+    order: r.order,
+    enabled: r.enabled ?? false,
+  }));
 
   // Repos using this agent
   const reposUsing = await db
@@ -112,6 +164,8 @@ async function getAgentDetail(userId: string, agentId: string) {
 
   return {
     agent: theAgent[0],
+    agentType: agentType[0] ?? null,
+    rules,
     reposUsing: reposUsingWithLastRun,
     recentRuns: recentRunsRaw,
   } as const;

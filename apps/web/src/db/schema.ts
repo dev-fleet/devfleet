@@ -38,6 +38,7 @@ const PR_CHECK_RUN_STATUSES = [
   "skipped",
   "cancelled",
 ] as const;
+const RULE_SEVERITIES = ["low", "medium", "high", "critical"] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -235,6 +236,51 @@ export const pullRequests = pgTable(
   ]
 );
 
+export const agentTypes = pgTable(
+  "agent_types",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description").notNull(),
+    basePrompt: text("base_prompt").notNull(),
+    category: text("category"),
+    icon: text("icon"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("agent_types_slug_uq").on(table.slug),
+    index("agent_types_category_idx").on(table.category),
+  ]
+);
+
+export const agentTypeRules = pgTable(
+  "agent_type_rules",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    agentTypeId: text("agent_type_id")
+      .notNull()
+      .references(() => agentTypes.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    severity: text("severity", { enum: RULE_SEVERITIES })
+      .notNull()
+      .default("medium"),
+    category: text("category"),
+    defaultEnabled: boolean("default_enabled").notNull().default(true),
+    order: integer("order").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    index("agent_type_rules_agent_type_idx").on(table.agentTypeId),
+    index("agent_type_rules_severity_idx").on(table.severity),
+  ]
+);
+
 export const agents = pgTable(
   "agents",
   {
@@ -242,7 +288,10 @@ export const agents = pgTable(
       .primaryKey()
       .$defaultFn(() => createId()),
     name: text("name").notNull(),
-    prompt: text("prompt").notNull(),
+    agentTypeId: text("agent_type_id")
+      .notNull()
+      .references(() => agentTypes.id, { onDelete: "restrict" }),
+    prompt: text("prompt"), // Optional override of base prompt
     engine: text("engine", {
       enum: ["anthropic", "openai"],
     })
@@ -255,7 +304,35 @@ export const agents = pgTable(
       .references(() => ghOrganizations.id, { onDelete: "cascade" }),
     ...timestamps,
   },
-  (table) => [index("agents_archived_idx").on(table.archived)]
+  (table) => [
+    index("agents_archived_idx").on(table.archived),
+    index("agents_agent_type_idx").on(table.agentTypeId),
+  ]
+);
+
+export const agentRules = pgTable(
+  "agent_rules",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    agentId: text("agent_id")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    agentTypeRuleId: text("agent_type_rule_id")
+      .notNull()
+      .references(() => agentTypeRules.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("agent_rules_agent_rule_uq").on(
+      table.agentId,
+      table.agentTypeRuleId
+    ),
+    index("agent_rules_agent_idx").on(table.agentId),
+    index("agent_rules_enabled_idx").on(table.enabled),
+  ]
 );
 
 export const repoAgents = pgTable(
@@ -336,13 +413,45 @@ export const prCheckRuns = pgTable(
  *
  *************************************************************************/
 
+export const agentTypesRelations = relations(agentTypes, ({ many }) => ({
+  rules: many(agentTypeRules),
+  agents: many(agents),
+}));
+
+export const agentTypeRulesRelations = relations(
+  agentTypeRules,
+  ({ one, many }) => ({
+    agentType: one(agentTypes, {
+      fields: [agentTypeRules.agentTypeId],
+      references: [agentTypes.id],
+    }),
+    agentRules: many(agentRules),
+  })
+);
+
 export const agentsRelations = relations(agents, ({ one, many }) => ({
   org: one(ghOrganizations, {
     fields: [agents.ownerGhOrganizationId],
     references: [ghOrganizations.id],
   }),
+  agentType: one(agentTypes, {
+    fields: [agents.agentTypeId],
+    references: [agentTypes.id],
+  }),
   repoAgents: many(repoAgents),
   runs: many(prCheckRuns),
+  rules: many(agentRules),
+}));
+
+export const agentRulesRelations = relations(agentRules, ({ one }) => ({
+  agent: one(agents, {
+    fields: [agentRules.agentId],
+    references: [agents.id],
+  }),
+  agentTypeRule: one(agentTypeRules, {
+    fields: [agentRules.agentTypeRuleId],
+    references: [agentTypeRules.id],
+  }),
 }));
 
 export const pullRequestsRelations = relations(
@@ -440,6 +549,7 @@ export const repoAgentsRelations = relations(repoAgents, ({ one }) => ({
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 export type PrStatus = (typeof PR_STATUSES)[number];
 export type PrCheckRunStatus = (typeof PR_CHECK_RUN_STATUSES)[number];
+export type RuleSeverity = (typeof RULE_SEVERITIES)[number];
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -451,8 +561,14 @@ export type Repository = typeof repositories.$inferSelect;
 export type NewRepository = typeof repositories.$inferInsert;
 export type PullRequest = typeof pullRequests.$inferSelect;
 export type NewPullRequest = typeof pullRequests.$inferInsert;
+export type AgentType = typeof agentTypes.$inferSelect;
+export type NewAgentType = typeof agentTypes.$inferInsert;
+export type AgentTypeRule = typeof agentTypeRules.$inferSelect;
+export type NewAgentTypeRule = typeof agentTypeRules.$inferInsert;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
+export type AgentRule = typeof agentRules.$inferSelect;
+export type NewAgentRule = typeof agentRules.$inferInsert;
 export type RepoAgent = typeof repoAgents.$inferSelect;
 export type NewRepoAgent = typeof repoAgents.$inferInsert;
 export type PrCheckRun = typeof prCheckRuns.$inferSelect;
