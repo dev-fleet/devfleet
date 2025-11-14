@@ -22,7 +22,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
+import { MoreHorizontal, Info } from "lucide-react";
 import { useAgents } from "@/utils/swr/agents";
 import { toast } from "sonner";
 import { archiveAgent, duplicateAgent } from "@/actions/agents";
@@ -85,7 +90,26 @@ export function AgentsTableClient() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>
+                <div className="flex items-center gap-1.5">
+                  Agent Type
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>
+                        <strong>Managed:</strong> Pre-built agents maintained by
+                        DevFleet with automatic updates.
+                      </p>
+                      <p className="mt-1.5">
+                        <strong>Custom:</strong> User-created agents with custom
+                        configurations and rules.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableHead>
               <TableHead className="text-center">Enabled repos</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -143,9 +167,6 @@ export function AgentsTableClient() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/agents/${agent.id}`}>Open detail</Link>
-                      </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/agents/${agent.id}`}>Edit</Link>
                       </DropdownMenuItem>
