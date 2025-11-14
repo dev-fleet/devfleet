@@ -43,7 +43,7 @@ export async function createAgent(input: {
   }
 
   // Create the agent
-  const [created] = await db
+  const createdAgents = await db
     .insert(agents)
     .values({
       name: input.name,
@@ -54,6 +54,9 @@ export async function createAgent(input: {
       ownerGhOrganizationId: orgId,
     })
     .returning({ id: agents.id });
+
+  const created = createdAgents[0];
+  if (!created) throw new Error("Failed to create agent");
 
   // Create default agent rules based on agent template rules
   const defaultRules = await db
@@ -129,7 +132,7 @@ export async function duplicateAgent(agentId: string) {
   if (!source[0]) throw new Error("Agent not found");
 
   const newName = `${source[0].name} (copy)`;
-  const [created] = await db
+  const createdAgents = await db
     .insert(agents)
     .values({
       name: newName,
@@ -140,6 +143,9 @@ export async function duplicateAgent(agentId: string) {
       ownerGhOrganizationId: orgId,
     })
     .returning({ id: agents.id });
+
+  const created = createdAgents[0];
+  if (!created) throw new Error("Failed to duplicate agent");
 
   // Copy rule configurations from source agent
   const sourceRules = await db
@@ -238,4 +244,81 @@ export async function bulkUpdateAgentRules(
 
   revalidatePath(`/dashboard/agents/${agentId}`);
   return { success: true } as const;
+}
+
+export async function createAgentWithConfiguration(input: {
+  agentTemplateId: string;
+  name: string;
+  engine: Engine;
+  description?: string | null;
+  rules: { ruleId: string; enabled: boolean }[];
+  repositoryIds: string[];
+}) {
+  try {
+    const orgId = await getDefaultOrgId();
+
+    // Verify agent template exists
+    const agentTemplate = await db
+      .select({ id: agentTemplates.id })
+      .from(agentTemplates)
+      .where(eq(agentTemplates.id, input.agentTemplateId))
+      .limit(1);
+
+    if (!agentTemplate[0]) {
+      return { success: false, error: "Agent template not found" };
+    }
+
+    // Create the agent
+    const createdAgents = await db
+      .insert(agents)
+      .values({
+        name: input.name,
+        agentTemplateId: input.agentTemplateId,
+        prompt: null, // Use base prompt from agent template
+        engine: input.engine,
+        description: input.description ?? null,
+        ownerGhOrganizationId: orgId,
+      })
+      .returning({ id: agents.id });
+
+    const created = createdAgents[0];
+    if (!created) {
+      return { success: false, error: "Failed to create agent" };
+    }
+
+    // Create agent rules with custom configurations
+    if (input.rules.length > 0) {
+      await db.insert(agentRules).values(
+        input.rules.map((rule) => ({
+          agentId: created.id,
+          ruleId: rule.ruleId,
+          enabled: rule.enabled,
+        }))
+      );
+    }
+
+    // Associate agent with repositories
+    if (input.repositoryIds.length > 0) {
+      const { repoAgents } = await import("@/db/schema");
+      await db.insert(repoAgents).values(
+        input.repositoryIds.map((repoId, index) => ({
+          ownerGhOrganizationId: orgId,
+          repoId,
+          agentId: created.id,
+          enabled: true,
+          order: index,
+        }))
+      );
+    }
+
+    revalidatePath("/agents");
+    revalidatePath("/dashboard/agents");
+    return { success: true, agentId: created.id };
+  } catch (error) {
+    console.error("Error creating agent:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }

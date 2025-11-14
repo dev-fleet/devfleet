@@ -22,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { useAgents } from "@/utils/swr/agents";
 import { toast } from "sonner";
 import { archiveAgent, duplicateAgent } from "@/actions/agents";
@@ -78,9 +78,6 @@ export function AgentsTableClient() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-sm"
         />
-        <Button onClick={() => router.push("/agents/new")}>
-          <Plus className="h-4 w-4 mr-2" /> New agent
-        </Button>
       </div>
 
       <div className="border rounded-lg">
