@@ -10,6 +10,7 @@ import {
   numeric,
   customType,
   uniqueIndex,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { relations } from "drizzle-orm";
@@ -189,9 +190,7 @@ export const userGhOrganizationMemberships = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    ghOrganizationId: text("gh_organization_id")
-      .notNull()
-      .references(() => ghOrganizations.id, { onDelete: "cascade" }),
+    ghOrganizationId: text("gh_organization_id").notNull(),
     role: text("role", {
       enum: ["OWNER", "MEMBER"],
     })
@@ -208,6 +207,11 @@ export const userGhOrganizationMemberships = pgTable(
     index("user_gh_organization_memberships_gh_organization_idx").on(
       table.ghOrganizationId
     ),
+    foreignKey({
+      name: "user_gh_org_members_gh_org_fk",
+      columns: [table.ghOrganizationId],
+      foreignColumns: [ghOrganizations.id],
+    }).onDelete("cascade"),
   ]
 );
 
