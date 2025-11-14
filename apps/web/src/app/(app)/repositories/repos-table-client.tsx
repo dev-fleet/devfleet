@@ -10,34 +10,20 @@ import {
   TableRow,
 } from "@workspace/ui/components/table";
 import { Input } from "@workspace/ui/components/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
 import { Badge } from "@workspace/ui/components/badge";
 import { GitBranch } from "lucide-react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import { useRepositories } from "@/utils/swr/repositories";
 import type { RepositoryResponse } from "@/app/api/repositories/route";
 
 export function ReposTableClient() {
   const { data, error } = useRepositories();
-  const repositories = useMemo(() => {
-    const items = (data ?? []) as RepositoryResponse;
-    type RepoWithOptionalExtras = RepositoryResponse[number] &
-      Partial<{ gatePassPercentage: number; errors24h: number }>;
-    return (items as RepoWithOptionalExtras[]).map((repo) => ({
-      gatePassPercentage: repo.gatePassPercentage ?? null,
-      errors24h: repo.errors24h ?? 0,
-      ...repo,
-    }));
-  }, [data]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterBy, setFilterBy] = useState<string>("all");
+
+  const repositories = useMemo(
+    () => (data ?? []) as RepositoryResponse,
+    [data]
+  );
 
   const filteredRepos = useMemo(() => {
     let filtered = repositories;
@@ -49,13 +35,8 @@ export function ReposTableClient() {
       );
     }
 
-    // Apply status filter
-    if (filterBy === "failing") {
-      filtered = filtered.filter((repo) => repo.errors24h > 0);
-    }
-
     return filtered;
-  }, [repositories, searchQuery, filterBy]);
+  }, [repositories, searchQuery]);
 
   return (
     <>
@@ -66,15 +47,6 @@ export function ReposTableClient() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-sm"
         />
-        <Select value={filterBy} onValueChange={setFilterBy}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All repositories</SelectItem>
-            <SelectItem value="failing">Has failing PRs</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="border rounded-lg">
@@ -83,16 +55,13 @@ export function ReposTableClient() {
             <TableRow>
               <TableHead>Repository</TableHead>
               <TableHead className="text-center">Open PRs</TableHead>
-              <TableHead className="text-center">Gate Pass %</TableHead>
               <TableHead className="text-center">Active Agents</TableHead>
-              <TableHead className="text-center">Errors 24h</TableHead>
-              <TableHead>Updated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {error && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-destructive">
+                <TableCell colSpan={3} className="text-center text-destructive">
                   Failed to load repositories
                 </TableCell>
               </TableRow>
@@ -100,7 +69,7 @@ export function ReposTableClient() {
             {!error && !data && (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={3}
                   className="text-center text-muted-foreground"
                 >
                   Loading repositories...
@@ -110,7 +79,7 @@ export function ReposTableClient() {
             {filteredRepos.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={3}
                   className="text-center text-muted-foreground"
                 >
                   No repositories found
@@ -126,12 +95,12 @@ export function ReposTableClient() {
                     <Link href={`/repositories/${repo.id}`} className="block">
                       <div className="flex items-start gap-3">
                         <GitBranch className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-                        <div className="flex flex-col">
-                          <span className="font-medium hover:underline">
+                        <div className="flex flex-col min-w-0 flex-1 max-w-md">
+                          <span className="font-medium hover:underline truncate">
                             {repo.name}
                           </span>
                           {repo.description && (
-                            <span className="text-sm text-muted-foreground line-clamp-1">
+                            <span className="text-sm text-muted-foreground truncate">
                               {repo.description}
                             </span>
                           )}
@@ -150,44 +119,7 @@ export function ReposTableClient() {
                   </TableCell>
                   <TableCell className="text-center">
                     <Link href={`/repositories/${repo.id}`}>
-                      {repo.gatePassPercentage !== null ? (
-                        <Badge
-                          variant={
-                            repo.gatePassPercentage >= 80
-                              ? "default"
-                              : repo.gatePassPercentage >= 50
-                                ? "secondary"
-                                : "destructive"
-                          }
-                        >
-                          {repo.gatePassPercentage}%
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">
-                          N/A
-                        </span>
-                      )}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Link href={`/repositories/${repo.id}`}>
                       {repo.activeAgents}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Link href={`/repositories/${repo.id}`}>
-                      <span className="text-muted-foreground">
-                        {repo.errors24h}
-                      </span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/repositories/${repo.id}`}>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(repo.updatedAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
                     </Link>
                   </TableCell>
                 </TableRow>
