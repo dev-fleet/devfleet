@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
 import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
-import { agents, repoAgents, users } from "@/db/schema";
+import { agents, repoAgents, users, agentTemplates } from "@/db/schema";
 
 async function getOrganizationAgents(userId: string) {
   const user = await db
@@ -26,6 +26,7 @@ async function getOrganizationAgents(userId: string) {
       updatedAt: agents.updatedAt,
       reposUsingCount: sql<number>`count(${repoAgents.id})`,
       enabledReposCount: sql<number>`coalesce(sum(case when ${repoAgents.enabled} then 1 else 0 end), 0)`,
+      isSystemTemplate: agentTemplates.isSystemTemplate,
     })
     .from(agents)
     .leftJoin(
@@ -35,10 +36,11 @@ async function getOrganizationAgents(userId: string) {
         eq(repoAgents.ownerGhOrganizationId, orgId)
       )
     )
+    .innerJoin(agentTemplates, eq(agents.agentTemplateId, agentTemplates.id))
     .where(
       and(eq(agents.ownerGhOrganizationId, orgId), eq(agents.archived, false))
     )
-    .groupBy(agents.id)
+    .groupBy(agents.id, agentTemplates.isSystemTemplate)
     .orderBy(agents.name);
 
   return orgAgents;

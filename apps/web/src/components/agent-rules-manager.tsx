@@ -6,21 +6,15 @@ import { Button } from "@workspace/ui/components/button";
 import { Badge } from "@workspace/ui/components/badge";
 import { Switch } from "@workspace/ui/components/switch";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
+import { ChevronRight, Circle } from "lucide-react";
 
-type Rule = {
+export type AgentRule = {
   id: string;
   name: string;
   description: string;
@@ -31,10 +25,12 @@ type Rule = {
 };
 
 type AgentRulesManagerProps = {
-  rules: Rule[];
+  rules: AgentRule[];
   onToggleRule: (ruleId: string) => void;
   onBulkUpdate?: (updates: { ruleId: string; enabled: boolean }[]) => void;
   loading?: boolean;
+  showSearch?: boolean;
+  showBulkActions?: boolean;
 };
 
 export function AgentRulesManager({
@@ -42,10 +38,25 @@ export function AgentRulesManager({
   onToggleRule,
   onBulkUpdate,
   loading = false,
+  showSearch = true,
+  showBulkActions = true,
 }: AgentRulesManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = useCallback((ruleId: string) => {
+    setExpandedRules((prev) => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) {
+        next.delete(ruleId);
+      } else {
+        next.add(ruleId);
+      }
+      return next;
+    });
+  }, []);
 
   // Get unique categories and severities
   const categories = useMemo(() => {
@@ -78,7 +89,7 @@ export function AgentRulesManager({
 
   // Group filtered rules by category
   const rulesByCategory = useMemo(() => {
-    const grouped = new Map<string, Rule[]>();
+    const grouped = new Map<string, AgentRule[]>();
     filteredRules.forEach((rule) => {
       const cat = rule.category || "Uncategorized";
       if (!grouped.has(cat)) {
@@ -133,71 +144,73 @@ export function AgentRulesManager({
 
   return (
     <div className="space-y-4">
-      {/* Header with stats and bulk actions */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {enabledCount} of {rules.length} rules enabled
-        </div>
-        {onBulkUpdate && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEnableAll}
-              disabled={loading}
-            >
-              Enable All Filtered
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDisableAll}
-              disabled={loading}
-            >
-              Disable All Filtered
-            </Button>
-          </div>
-        )}
-      </div>
-
       {/* Filters */}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          placeholder="Search rules..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="sm:max-w-xs"
-        />
-        <Select value={severityFilter} onValueChange={setSeverityFilter}>
-          <SelectTrigger className="sm:w-[180px]">
-            <SelectValue placeholder="Filter by severity" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Severities</SelectItem>
-            {severities.map((sev) => (
-              <SelectItem key={sev} value={sev}>
-                {sev.charAt(0).toUpperCase() + sev.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {categories.length > 0 && (
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+      {showSearch && (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            placeholder="Search rules..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="sm:max-w-xs"
+          />
+          <Select value={severityFilter} onValueChange={setSeverityFilter}>
             <SelectTrigger className="sm:w-[180px]">
-              <SelectValue placeholder="Filter by category" />
+              <SelectValue placeholder="Filter by severity" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              <SelectItem value="all">All Severities</SelectItem>
+              {severities.map((sev) => (
+                <SelectItem key={sev} value={sev}>
+                  {sev.charAt(0).toUpperCase() + sev.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-      </div>
-
+          {categories.length > 0 && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="sm:w-[180px]">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+      {/* Bulk actions */}
+      {showBulkActions && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {enabledCount} of {rules.length} rules enabled
+          </div>
+          {onBulkUpdate && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnableAll}
+                disabled={loading}
+              >
+                Enable All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDisableAll}
+                disabled={loading}
+              >
+                Disable All
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
       {/* Rules list grouped by category */}
       <div className="space-y-6">
         {Array.from(rulesByCategory.entries()).map(([category, catRules]) => (
@@ -205,29 +218,78 @@ export function AgentRulesManager({
             <h3 className="mb-3 text-sm font-semibold capitalize">
               {category}
             </h3>
-            <div className="space-y-3">
-              {catRules.map((rule) => (
-                <Card key={rule.id}>
-                  <CardContent className="flex items-start gap-4 p-4">
-                    <Switch
-                      checked={rule.enabled}
-                      onCheckedChange={() => onToggleRule(rule.id)}
-                      disabled={loading}
-                    />
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{rule.name}</h4>
-                        <Badge variant={getSeverityVariant(rule.severity) as any}>
-                          {rule.severity}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {rule.description}
-                      </p>
+            <div className="overflow-hidden rounded-md border">
+              {catRules.map((rule, index) => {
+                const isExpanded = expandedRules.has(rule.id);
+                const isLast = index === catRules.length - 1;
+
+                return (
+                  <div key={rule.id} className={!isLast ? "border-b" : ""}>
+                    {/* Row */}
+                    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50">
+                      {/* Expand button */}
+                      <button
+                        onClick={() => toggleExpanded(rule.id)}
+                        className="flex items-center justify-center p-0.5 hover:bg-muted rounded transition-colors"
+                        disabled={loading}
+                      >
+                        <ChevronRight
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${
+                            isExpanded ? "rotate-90" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {/* Status icon */}
+                      <Circle
+                        className={`h-3 w-3 ${
+                          rule.enabled
+                            ? "fill-green-500 text-green-500"
+                            : "fill-muted text-muted"
+                        }`}
+                      />
+
+                      {/* Rule name (clickable) */}
+                      <button
+                        onClick={() => toggleExpanded(rule.id)}
+                        className="flex-1 text-left font-medium hover:text-foreground/80 transition-colors"
+                        disabled={loading}
+                      >
+                        {rule.name}
+                      </button>
+
+                      {/* Severity badge */}
+                      <Badge
+                        variant={
+                          getSeverityVariant(rule.severity) as
+                            | "default"
+                            | "secondary"
+                            | "destructive"
+                            | "outline"
+                        }
+                      >
+                        {rule.severity}
+                      </Badge>
+
+                      {/* Enable/disable toggle */}
+                      <Switch
+                        checked={rule.enabled}
+                        onCheckedChange={() => onToggleRule(rule.id)}
+                        disabled={loading}
+                      />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                    {/* Expanded description */}
+                    {isExpanded && (
+                      <div className="px-4 py-3 bg-muted/30 border-t">
+                        <p className="text-sm text-muted-foreground pl-10">
+                          {rule.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -240,4 +302,3 @@ export function AgentRulesManager({
     </div>
   );
 }
-

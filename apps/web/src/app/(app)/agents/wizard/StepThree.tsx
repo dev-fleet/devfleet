@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { useRepositories } from "@/utils/swr/repositories";
-import { Card, CardContent } from "@workspace/ui/components/card";
+import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
 import { Switch } from "@workspace/ui/components/switch";
-import { Loader2, GitBranch } from "lucide-react";
+import { Badge } from "@workspace/ui/components/badge";
+import { Loader2, GitBranch, Circle } from "lucide-react";
 
 interface StepThreeProps {
   onComplete: (repositoryIds: string[]) => void;
@@ -13,14 +14,35 @@ interface StepThreeProps {
   isSubmitting: boolean;
 }
 
-export function StepThree({ onComplete, onBack, isSubmitting }: StepThreeProps) {
+export function StepThree({
+  onComplete,
+  onBack,
+  isSubmitting,
+}: StepThreeProps) {
   const { data, isLoading, error } = useRepositories();
   const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
   const repositories = useMemo(() => {
     if (!data || "error" in data) return [];
     return data;
   }, [data]);
+
+  // Filter repositories based on search query
+  const filteredRepositories = useMemo(() => {
+    if (searchQuery === "") return repositories;
+
+    return repositories.filter((repo) => {
+      const matchesName = repo.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesDescription =
+        repo.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        false;
+
+      return matchesName || matchesDescription;
+    });
+  }, [repositories, searchQuery]);
 
   const handleToggle = (repoId: string) => {
     setSelectedRepos((prev) => {
@@ -36,7 +58,7 @@ export function StepThree({ onComplete, onBack, isSubmitting }: StepThreeProps) 
 
   const handleToggleAll = (enabled: boolean) => {
     if (enabled) {
-      setSelectedRepos(new Set(repositories.map((r) => r.id)));
+      setSelectedRepos(new Set(filteredRepositories.map((r) => r.id)));
     } else {
       setSelectedRepos(new Set());
     }
@@ -46,7 +68,9 @@ export function StepThree({ onComplete, onBack, isSubmitting }: StepThreeProps) 
     onComplete(Array.from(selectedRepos));
   };
 
-  const allSelected = repositories.length > 0 && selectedRepos.size === repositories.length;
+  const allFilteredSelected =
+    filteredRepositories.length > 0 &&
+    filteredRepositories.every((repo) => selectedRepos.has(repo.id));
 
   if (isLoading) {
     return (
@@ -71,90 +95,109 @@ export function StepThree({ onComplete, onBack, isSubmitting }: StepThreeProps) 
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Select Repositories</h2>
         <p className="text-muted-foreground">
-          Choose which repositories to apply this agent to. You can change this later.
+          Choose which repositories to apply this agent to. You can change this
+          later.
         </p>
       </div>
 
-      {/* Toggle all control */}
-      <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
-        <div>
-          <p className="font-medium">
-            {selectedRepos.size} of {repositories.length} repositories selected
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Enable or disable all repositories
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            {allSelected ? "All enabled" : "Enable all"}
-          </span>
-          <Switch
-            checked={allSelected}
-            onCheckedChange={handleToggleAll}
+      {/* Search and controls */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1">
+          <Input
+            placeholder="Search repositories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-xs"
           />
+          <div className="text-sm text-muted-foreground whitespace-nowrap">
+            {selectedRepos.size} of {repositories.length} repositories selected
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleToggleAll(!allFilteredSelected)}
+          disabled={isSubmitting || filteredRepositories.length === 0}
+        >
+          {allFilteredSelected ? "Disable All" : "Enable All"}
+        </Button>
       </div>
 
       {/* Repositories list */}
-      <div className="space-y-3">
-        {repositories.map((repo) => (
-          <Card key={repo.id}>
-            <CardContent className="flex items-center gap-4 p-4">
-              {/* Repository icon */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                <GitBranch className="h-5 w-5 text-primary" />
-              </div>
+      <div className="overflow-hidden rounded-md border">
+        {filteredRepositories.map((repo, index) => {
+          const isSelected = selectedRepos.has(repo.id);
+          const isLast = index === filteredRepositories.length - 1;
 
-              {/* Repository info */}
-              <div className="flex-1 space-y-1">
-                <h4 className="font-medium">{repo.name}</h4>
-                {repo.description && (
-                  <p className="text-sm text-muted-foreground">
-                    {repo.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {repo.private && (
-                    <span className="rounded bg-muted px-1.5 py-0.5">
-                      Private
-                    </span>
-                  )}
-                  {repo.defaultBranch && (
-                    <span>{repo.defaultBranch}</span>
+          return (
+            <div key={repo.id} className={!isLast ? "border-b" : ""}>
+              <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50">
+                {/* Status icon */}
+                <Circle
+                  className={`h-3 w-3 ${
+                    isSelected
+                      ? "fill-green-500 text-green-500"
+                      : "fill-muted text-muted"
+                  }`}
+                />
+
+                {/* Repository icon */}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <GitBranch className="h-4 w-4 text-primary" />
+                </div>
+
+                {/* Repository info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{repo.name}</span>
+                    {repo.private && (
+                      <Badge variant="outline" className="text-xs">
+                        Private
+                      </Badge>
+                    )}
+                  </div>
+                  {repo.description && (
+                    <p className="text-sm text-muted-foreground truncate">
+                      {repo.description}
+                    </p>
                   )}
                 </div>
-              </div>
 
-              {/* Toggle switch */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {selectedRepos.has(repo.id) ? "Enabled" : "Disabled"}
-                </span>
+                {/* Branch info */}
+                {repo.defaultBranch && (
+                  <span className="text-sm text-muted-foreground">
+                    {repo.defaultBranch}
+                  </span>
+                )}
+
+                {/* Toggle switch */}
                 <Switch
-                  checked={selectedRepos.has(repo.id)}
+                  checked={isSelected}
                   onCheckedChange={() => handleToggle(repo.id)}
                   disabled={isSubmitting}
                 />
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          );
+        })}
       </div>
+
+      {filteredRepositories.length === 0 && repositories.length > 0 && (
+        <div className="py-8 text-center text-muted-foreground">
+          No repositories match your search
+        </div>
+      )}
 
       {repositories.length === 0 && (
         <div className="py-12 text-center text-muted-foreground">
-          No repositories available. Please connect your GitHub repositories first.
+          No repositories available. Please connect your GitHub repositories
+          first.
         </div>
       )}
 
       {/* Navigation buttons */}
       <div className="flex justify-between border-t pt-6">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={isSubmitting}
-        >
+        <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
           Back
         </Button>
         <Button
@@ -174,4 +217,3 @@ export function StepThree({ onComplete, onBack, isSubmitting }: StepThreeProps) 
     </div>
   );
 }
-

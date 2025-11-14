@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAgentTemplates } from "@/hooks/useAgentTemplates";
-import { Card, CardContent } from "@workspace/ui/components/card";
-import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import { Switch } from "@workspace/ui/components/switch";
 import { Loader2 } from "lucide-react";
+import {
+  AgentRulesManager,
+  type AgentRule,
+} from "@/components/agent-rules-manager";
 
 interface StepTwoProps {
   agentTemplateId: string;
@@ -33,41 +34,39 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
     }
   }, [template]);
 
-  const rulesByCategory = useMemo(() => {
-    if (!template?.rules) return new Map();
+  // Transform template rules to AgentRule format
+  const transformedRules = useMemo<AgentRule[]>(() => {
+    if (!template?.rules) return [];
+    return template.rules.map((rule) => ({
+      id: rule.id,
+      name: rule.name,
+      description: rule.description,
+      severity: rule.severity,
+      category: rule.category,
+      order: rule.order,
+      enabled: ruleStates[rule.id] || false,
+    }));
+  }, [template, ruleStates]);
 
-    const map = new Map<string, typeof template.rules>();
-    template.rules.forEach((rule) => {
-      const category = rule.category || "other";
-      if (!map.has(category)) {
-        map.set(category, []);
-      }
-      map.get(category)!.push(rule);
-    });
-
-    // Sort rules within each category by order
-    map.forEach((rules) => {
-      rules.sort((a, b) => a.order - b.order);
-    });
-
-    return map;
-  }, [template]);
-
-  const handleToggle = (ruleId: string) => {
+  const handleToggle = useCallback((ruleId: string) => {
     setRuleStates((prev) => ({
       ...prev,
       [ruleId]: !prev[ruleId],
     }));
-  };
+  }, []);
 
-  const handleToggleAll = (enabled: boolean) => {
-    if (!template?.rules) return;
-    const newStates: Record<string, boolean> = {};
-    template.rules.forEach((rule) => {
-      newStates[rule.id] = enabled;
-    });
-    setRuleStates(newStates);
-  };
+  const handleBulkUpdate = useCallback(
+    (updates: { ruleId: string; enabled: boolean }[]) => {
+      setRuleStates((prev) => {
+        const newStates = { ...prev };
+        updates.forEach(({ ruleId, enabled }) => {
+          newStates[ruleId] = enabled;
+        });
+        return newStates;
+      });
+    },
+    []
+  );
 
   const handleContinue = () => {
     const rules = Object.entries(ruleStates).map(([ruleId, enabled]) => ({
@@ -75,21 +74,6 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
       enabled,
     }));
     onComplete(rules);
-  };
-
-  const getSeverityVariant = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return "destructive";
-      case "high":
-        return "destructive";
-      case "medium":
-        return "default";
-      case "low":
-        return "secondary";
-      default:
-        return "secondary";
-    }
   };
 
   const enabledCount = Object.values(ruleStates).filter(Boolean).length;
@@ -121,69 +105,13 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
         </p>
       </div>
 
-      {/* Toggle all controls */}
-      <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
-        <div>
-          <p className="font-medium">
-            {enabledCount} of {totalCount} rules enabled
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Toggle all rules on or off
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleToggleAll(true)}
-          >
-            Enable All
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleToggleAll(false)}
-          >
-            Disable All
-          </Button>
-        </div>
-      </div>
-
-      {/* Rules list grouped by category */}
-      <div className="space-y-6">
-        {Array.from(rulesByCategory.entries()).map(([category, catRules]) => (
-          <div key={category}>
-            <h3 className="mb-3 text-sm font-semibold capitalize">
-              {category.replace(/-/g, " ")}
-            </h3>
-            <div className="space-y-3">
-              {catRules.map((rule) => (
-                <Card key={rule.id}>
-                  <CardContent className="flex items-start gap-4 p-4">
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{rule.name}</h4>
-                        <Badge
-                          variant={getSeverityVariant(rule.severity) as any}
-                        >
-                          {rule.severity}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {rule.description}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={ruleStates[rule.id] || false}
-                      onCheckedChange={() => handleToggle(rule.id)}
-                    />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Rules Manager */}
+      <AgentRulesManager
+        rules={transformedRules}
+        onToggleRule={handleToggle}
+        onBulkUpdate={handleBulkUpdate}
+        showSearch={false}
+      />
 
       {/* Navigation buttons */}
       <div className="flex justify-between border-t pt-6">

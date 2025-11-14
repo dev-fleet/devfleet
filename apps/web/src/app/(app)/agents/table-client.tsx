@@ -85,9 +85,7 @@ export function AgentsTableClient() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Mode</TableHead>
-              <TableHead className="text-center">Repos using</TableHead>
-              <TableHead>Updated</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead className="text-center">Enabled repos</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -123,32 +121,14 @@ export function AgentsTableClient() {
             {filtered.map((agent) => (
               <TableRow key={agent.id} className="hover:bg-muted/50">
                 <TableCell>
-                  <Link
-                    href={`/dashboard/agents/${agent.id}`}
-                    className="block"
-                  >
+                  <Link href={`/agents/${agent.id}`} className="block">
                     <span className="font-medium hover:underline">
                       {agent.name}
                     </span>
                   </Link>
                 </TableCell>
-                <TableCell className="capitalize">{agent.engine}</TableCell>
-                <TableCell className="text-center">
-                  {agent.reposUsingCount ?? 0}
-                </TableCell>
-                <TableCell>
-                  {agent.updatedAt ? (
-                    <span className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(
-                        new Date(agent.updatedAt as unknown as string),
-                        {
-                          addSuffix: true,
-                        }
-                      )}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
+                <TableCell className="capitalize">
+                  {agent.isSystemTemplate ? "Managed" : "Custom"}
                 </TableCell>
                 <TableCell className="text-center">
                   {agent.enabledReposCount ?? 0}
@@ -164,12 +144,10 @@ export function AgentsTableClient() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/agents/${agent.id}`}>
-                          Open detail
-                        </Link>
+                        <Link href={`/agents/${agent.id}`}>Open detail</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/agents/${agent.id}`}>Edit</Link>
+                        <Link href={`/agents/${agent.id}`}>Edit</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onDuplicate(agent.id)}>
                         Duplicate

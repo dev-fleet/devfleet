@@ -23,7 +23,11 @@ import {
 } from "@workspace/ui/components/table";
 import { Card } from "@workspace/ui/components/card";
 import { toast } from "sonner";
-import { updateAgent, toggleAgentRule, bulkUpdateAgentRules } from "@/actions/agents";
+import {
+  updateAgent,
+  toggleAgentRule,
+  bulkUpdateAgentRules,
+} from "@/actions/agents";
 import { AgentRulesManager } from "@/components/agent-rules-manager";
 import Link from "next/link";
 import {
@@ -98,91 +102,32 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
 
   return (
     <div className="grid gap-8">
-      {/* Agent Info Card */}
-      <Card className="p-4 sm:p-6">
-        <div className="grid gap-4">
-          {/* Agent Type Badge */}
-          {data?.agentType && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Type:</span>
-              <Badge variant="secondary">{data.agentType.name}</Badge>
-            </div>
-          )}
-
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Engine</label>
-            <Select value={engine} onValueChange={(v) => setEngine(v as any)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select engine" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="anthropic">Anthropic</SelectItem>
-                <SelectItem value="openai">OpenAI</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">
-              Description (optional)
-            </label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              placeholder="Add a description"
-            />
-          </div>
-
-          {/* Base Prompt (Read-only) */}
-          {data?.agentType && (
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">
-                Base Prompt (from agent type)
-              </label>
-              <Textarea
-                value={data.agentType.basePrompt}
-                readOnly
-                disabled
-                rows={6}
-                className="resize-none"
-              />
-            </div>
-          )}
-
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" asChild>
-              <Link href="/repositories">Go to repositories</Link>
-            </Button>
-            <Button variant="secondary" onClick={() => setTestOpen(true)}>
-              Quick test
-            </Button>
-            <Button onClick={onSave} disabled={saving}>
-              Save
-            </Button>
-          </div>
+      {/* Agent Info Section */}
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Name</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
-      </Card>
+        <div className="flex gap-2 justify-end">
+          <Button onClick={onSave} disabled={saving}>
+            Save
+          </Button>
+        </div>
+      </div>
 
       {/* Rules Management Section */}
-      <Card className="p-4 sm:p-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold">Rules</h2>
-          <p className="text-sm text-muted-foreground">
-            Enable or disable specific rules for this agent
-          </p>
-        </div>
-        <AgentRulesManager
-          rules={rules}
-          onToggleRule={handleToggleRule}
-          onBulkUpdate={handleBulkUpdateRules}
-        />
-      </Card>
+
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">Rules</h2>
+        <p className="text-sm text-muted-foreground">
+          Enable or disable specific rules for this agent
+        </p>
+      </div>
+      <AgentRulesManager
+        rules={rules}
+        onToggleRule={handleToggleRule}
+        onBulkUpdate={handleBulkUpdateRules}
+      />
 
       <Dialog open={testOpen} onOpenChange={setTestOpen}>
         <DialogContent className="sm:max-w-2xl">
