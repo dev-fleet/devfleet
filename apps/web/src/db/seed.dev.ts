@@ -1,17 +1,17 @@
 import { env } from "@/env.mjs";
 import { db } from "./index";
-import { agentTypes, agentTypeRules } from "./schema";
+import { agentTemplates, rules } from "./schema";
 import { createId } from "@paralleldrive/cuid2";
 
 /**
- * Seed initial agent types and their rules
+ * Seed initial agent templates and their rules
  */
-export async function seedAgentTypes() {
-  console.log("Seeding agent types and rules...");
+export async function seedAgentTemplates() {
+  console.log("Seeding agent templates and rules...");
 
-  // TypeScript Agent
+  // TypeScript Agent Template
   const tsAgentId = createId();
-  await db.insert(agentTypes).values({
+  await db.insert(agentTemplates).values({
     id: tsAgentId,
     name: "TypeScript Agent",
     slug: "typescript",
@@ -26,6 +26,8 @@ export async function seedAgentTypes() {
 Focus only on the enabled rules and provide actionable feedback.`,
     category: "language",
     icon: "typescript",
+    isSystemTemplate: true,
+    ownerGhOrganizationId: null,
   });
 
   const tsRules = [
@@ -167,16 +169,17 @@ Focus only on the enabled rules and provide actionable feedback.`,
   ];
 
   for (const rule of tsRules) {
-    await db.insert(agentTypeRules).values({
+    await db.insert(rules).values({
       id: createId(),
-      agentTypeId: tsAgentId,
+      agentTemplateId: tsAgentId,
+      ownerGhOrganizationId: null, // System rules
       ...rule,
     });
   }
 
-  // Security Agent
+  // Security Agent Template
   const secAgentId = createId();
-  await db.insert(agentTypes).values({
+  await db.insert(agentTemplates).values({
     id: secAgentId,
     name: "Security Agent",
     slug: "security",
@@ -192,6 +195,8 @@ Focus only on the enabled rules and provide actionable feedback.`,
 Focus on real security issues, not theoretical ones. Be specific and actionable.`,
     category: "security",
     icon: "shield",
+    isSystemTemplate: true,
+    ownerGhOrganizationId: null,
   });
 
   const secRules = [
@@ -306,14 +311,15 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
   ];
 
   for (const rule of secRules) {
-    await db.insert(agentTypeRules).values({
+    await db.insert(rules).values({
       id: createId(),
-      agentTypeId: secAgentId,
+      agentTemplateId: secAgentId,
+      ownerGhOrganizationId: null, // System rules
       ...rule,
     });
   }
 
-  console.log("✅ Agent types and rules seeded successfully!");
+  console.log("✅ Agent templates and rules seeded successfully!");
 }
 
 const seed = async () => {
@@ -321,7 +327,7 @@ const seed = async () => {
     throw new Error("This script can only be used in development mode.");
   }
 
-  await seedAgentTypes();
+  await seedAgentTemplates();
 };
 
 seed()

@@ -35,24 +35,24 @@ export function AgentCreateDialog({
   const { data: agentTypesData, isLoading } = useAgentTypes();
   const [name, setName] = useState("");
   const [engine, setEngine] = useState<"anthropic" | "openai">("anthropic");
-  const [agentTypeId, setAgentTypeId] = useState<string>("");
+  const [agentTemplateId, setAgentTemplateId] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  const agentTypes = useMemo(
-    () => agentTypesData?.agentTypes ?? [],
+  const agentTemplates = useMemo(
+    () => agentTypesData?.agentTemplates ?? [],
     [agentTypesData]
   );
 
-  const selectedAgentType = useMemo(
-    () => agentTypes.find((t) => t.id === agentTypeId),
-    [agentTypes, agentTypeId]
+  const selectedAgentTemplate = useMemo(
+    () => agentTemplates.find((t) => t.id === agentTemplateId),
+    [agentTemplates, agentTemplateId]
   );
 
   const reset = useCallback(() => {
     setName("");
     setEngine("anthropic");
-    setAgentTypeId("");
+    setAgentTemplateId("");
     setDescription("");
   }, []);
 
@@ -63,13 +63,13 @@ export function AgentCreateDialog({
         toast.error("Name is required");
         return;
       }
-      if (!agentTypeId) {
-        toast.error("Please select an agent type");
+      if (!agentTemplateId) {
+        toast.error("Please select an agent template");
         return;
       }
       await createAgent({
         name: name.trim(),
-        agentTypeId,
+        agentTemplateId,
         engine,
         description: description.trim() || null,
       });
@@ -82,7 +82,7 @@ export function AgentCreateDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [name, agentTypeId, engine, description, onOpenChange, onCreated, reset]);
+  }, [name, agentTemplateId, engine, description, onOpenChange, onCreated, reset]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,34 +97,34 @@ export function AgentCreateDialog({
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Agent Type</label>
+            <label className="text-sm font-medium">Agent Template</label>
             <Select
-              value={agentTypeId}
-              onValueChange={setAgentTypeId}
+              value={agentTemplateId}
+              onValueChange={setAgentTemplateId}
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select agent type" />
+                <SelectValue placeholder="Select agent template" />
               </SelectTrigger>
               <SelectContent>
-                {agentTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.name} ({type.ruleCount} rules)
+                {agentTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name} ({template.ruleCount} rules)
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {selectedAgentType && (
+            {selectedAgentTemplate && (
               <div className="rounded-md bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
-                  {selectedAgentType.description}
+                  {selectedAgentTemplate.description}
                 </p>
                 <div className="mt-2 flex gap-2">
                   <Badge variant="secondary">
-                    {selectedAgentType.ruleCount} rules
+                    {selectedAgentTemplate.ruleCount} rules
                   </Badge>
                   <Badge variant="secondary">
-                    {selectedAgentType.defaultEnabledCount} enabled by default
+                    {selectedAgentTemplate.defaultEnabledCount} enabled by default
                   </Badge>
                 </div>
               </div>

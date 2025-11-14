@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { agentTypes, agentTypeRules } from "@/db/schema";
+import { agentTemplates, rules } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export type GetAgentTypesResponse = Awaited<ReturnType<typeof getData>>;
+export type GetAgentTemplatesResponse = Awaited<ReturnType<typeof getData>>;
 
 export async function GET() {
   const result = await getData();
@@ -11,26 +11,29 @@ export async function GET() {
 }
 
 async function getData() {
-  // Get all agent types with their rules
-  const types = await db.select().from(agentTypes).orderBy(agentTypes.name);
+  // Get all agent templates with their rules
+  const templates = await db
+    .select()
+    .from(agentTemplates)
+    .orderBy(agentTemplates.name);
 
-  const typesWithRules = await Promise.all(
-    types.map(async (type) => {
-      const rules = await db
+  const templatesWithRules = await Promise.all(
+    templates.map(async (template) => {
+      const templateRules = await db
         .select()
-        .from(agentTypeRules)
-        .where(eq(agentTypeRules.agentTypeId, type.id))
-        .orderBy(agentTypeRules.order);
+        .from(rules)
+        .where(eq(rules.agentTemplateId, template.id))
+        .orderBy(rules.order);
 
       return {
-        ...type,
-        rules,
-        ruleCount: rules.length,
-        defaultEnabledCount: rules.filter((r) => r.defaultEnabled).length,
+        ...template,
+        rules: templateRules,
+        ruleCount: templateRules.length,
+        defaultEnabledCount: templateRules.filter((r) => r.defaultEnabled)
+          .length,
       };
     })
   );
 
-  return { agentTypes: typesWithRules };
+  return { agentTemplates: templatesWithRules };
 }
-

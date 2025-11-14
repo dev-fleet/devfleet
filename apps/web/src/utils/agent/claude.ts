@@ -1,20 +1,20 @@
 import { escapePrompt } from "./helpers";
 import { db } from "@/db";
-import { agents, agentTypes, agentTypeRules, agentRules } from "@/db/schema";
+import { agents, agentTemplates, rules, agentRules } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 
 const SYSTEM_PROMPT = "Don't ask any follow up questions.";
 
 /**
  * Build the complete prompt for an agent by combining the base prompt
- * from the agent type with all enabled rules
+ * from the agent template with all enabled rules
  */
 export async function buildAgentPrompt(agentId: string): Promise<string> {
   // Get the agent
   const agent = await db
     .select({
       id: agents.id,
-      agentTypeId: agents.agentTypeId,
+      agentTemplateId: agents.agentTemplateId,
       prompt: agents.prompt,
     })
     .from(agents)
@@ -25,37 +25,34 @@ export async function buildAgentPrompt(agentId: string): Promise<string> {
     throw new Error(`Agent not found: ${agentId}`);
   }
 
-  // Get the agent type
-  const agentType = await db
+  // Get the agent template
+  const agentTemplate = await db
     .select({
-      basePrompt: agentTypes.basePrompt,
+      basePrompt: agentTemplates.basePrompt,
     })
-    .from(agentTypes)
-    .where(eq(agentTypes.id, agent[0].agentTypeId))
+    .from(agentTemplates)
+    .where(eq(agentTemplates.id, agent[0].agentTemplateId))
     .limit(1);
 
-  if (!agentType[0]) {
-    throw new Error(`Agent type not found for agent: ${agentId}`);
+  if (!agentTemplate[0]) {
+    throw new Error(`Agent template not found for agent: ${agentId}`);
   }
 
   // Use custom prompt override if provided, otherwise use base prompt
-  const basePrompt = agent[0].prompt ?? agentType[0].basePrompt;
+  const basePrompt = agent[0].prompt ?? agentTemplate[0].basePrompt;
 
   // Get all enabled rules for this agent
   const enabledRules = await db
     .select({
-      name: agentTypeRules.name,
-      description: agentTypeRules.description,
-      severity: agentTypeRules.severity,
-      order: agentTypeRules.order,
+      name: rules.name,
+      description: rules.description,
+      severity: rules.severity,
+      order: rules.order,
     })
     .from(agentRules)
-    .innerJoin(
-      agentTypeRules,
-      eq(agentRules.agentTypeRuleId, agentTypeRules.id)
-    )
+    .innerJoin(rules, eq(agentRules.ruleId, rules.id))
     .where(and(eq(agentRules.agentId, agentId), eq(agentRules.enabled, true)))
-    .orderBy(agentTypeRules.order);
+    .orderBy(rules.order);
 
   // If no rules are enabled, just return the base prompt
   if (enabledRules.length === 0) {

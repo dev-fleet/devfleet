@@ -4,13 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { getSession } from "@/utils/auth";
 import { db } from "@/db";
-import {
-  agents,
-  users,
-  agentTypeRules,
-  agentRules,
-  agentTypes,
-} from "@/db/schema";
+import { agents, users, rules, agentRules, agentTemplates } from "@/db/schema";
 
 type Engine = "anthropic" | "openai";
 
@@ -31,21 +25,21 @@ async function getDefaultOrgId() {
 
 export async function createAgent(input: {
   name: string;
-  agentTypeId: string;
+  agentTemplateId: string;
   engine: Engine;
   description?: string | null;
 }) {
   const orgId = await getDefaultOrgId();
 
-  // Verify agent type exists
-  const agentType = await db
-    .select({ id: agentTypes.id })
-    .from(agentTypes)
-    .where(eq(agentTypes.id, input.agentTypeId))
+  // Verify agent template exists
+  const agentTemplate = await db
+    .select({ id: agentTemplates.id })
+    .from(agentTemplates)
+    .where(eq(agentTemplates.id, input.agentTemplateId))
     .limit(1);
 
-  if (!agentType[0]) {
-    throw new Error("Agent type not found");
+  if (!agentTemplate[0]) {
+    throw new Error("Agent template not found");
   }
 
   // Create the agent
@@ -53,28 +47,28 @@ export async function createAgent(input: {
     .insert(agents)
     .values({
       name: input.name,
-      agentTypeId: input.agentTypeId,
-      prompt: null, // Use base prompt from agent type
+      agentTemplateId: input.agentTemplateId,
+      prompt: null, // Use base prompt from agent template
       engine: input.engine,
       description: input.description ?? null,
       ownerGhOrganizationId: orgId,
     })
     .returning({ id: agents.id });
 
-  // Create default agent rules based on agent type rules
+  // Create default agent rules based on agent template rules
   const defaultRules = await db
     .select({
-      id: agentTypeRules.id,
-      defaultEnabled: agentTypeRules.defaultEnabled,
+      id: rules.id,
+      defaultEnabled: rules.defaultEnabled,
     })
-    .from(agentTypeRules)
-    .where(eq(agentTypeRules.agentTypeId, input.agentTypeId));
+    .from(rules)
+    .where(eq(rules.agentTemplateId, input.agentTemplateId));
 
   if (defaultRules.length > 0) {
     await db.insert(agentRules).values(
       defaultRules.map((rule) => ({
         agentId: created.id,
-        agentTypeRuleId: rule.id,
+        ruleId: rule.id,
         enabled: rule.defaultEnabled,
       }))
     );
@@ -124,7 +118,7 @@ export async function duplicateAgent(agentId: string) {
   const source = await db
     .select({
       name: agents.name,
-      agentTypeId: agents.agentTypeId,
+      agentTemplateId: agents.agentTemplateId,
       prompt: agents.prompt,
       engine: agents.engine,
       description: agents.description,
@@ -139,7 +133,7 @@ export async function duplicateAgent(agentId: string) {
     .insert(agents)
     .values({
       name: newName,
-      agentTypeId: source[0].agentTypeId,
+      agentTemplateId: source[0].agentTemplateId,
       prompt: source[0].prompt,
       engine: source[0].engine as Engine,
       description: source[0].description,
@@ -150,7 +144,7 @@ export async function duplicateAgent(agentId: string) {
   // Copy rule configurations from source agent
   const sourceRules = await db
     .select({
-      agentTypeRuleId: agentRules.agentTypeRuleId,
+      ruleId: agentRules.ruleId,
       enabled: agentRules.enabled,
     })
     .from(agentRules)
@@ -160,7 +154,7 @@ export async function duplicateAgent(agentId: string) {
     await db.insert(agentRules).values(
       sourceRules.map((rule) => ({
         agentId: created.id,
-        agentTypeRuleId: rule.agentTypeRuleId,
+        ruleId: rule.ruleId,
         enabled: rule.enabled,
       }))
     );
@@ -200,9 +194,7 @@ export async function toggleAgentRule(agentId: string, ruleId: string) {
   const currentRule = await db
     .select({ enabled: agentRules.enabled })
     .from(agentRules)
-    .where(
-      and(eq(agentRules.agentId, agentId), eq(agentRules.agentTypeRuleId, ruleId))
-    )
+    .where(and(eq(agentRules.agentId, agentId), eq(agentRules.ruleId, ruleId)))
     .limit(1);
 
   if (!currentRule[0]) throw new Error("Rule configuration not found");
@@ -211,9 +203,7 @@ export async function toggleAgentRule(agentId: string, ruleId: string) {
   await db
     .update(agentRules)
     .set({ enabled: !currentRule[0].enabled })
-    .where(
-      and(eq(agentRules.agentId, agentId), eq(agentRules.agentTypeRuleId, ruleId))
-    );
+    .where(and(eq(agentRules.agentId, agentId), eq(agentRules.ruleId, ruleId)));
 
   revalidatePath(`/dashboard/agents/${agentId}`);
   return { success: true, enabled: !currentRule[0].enabled } as const;
@@ -241,10 +231,7 @@ export async function bulkUpdateAgentRules(
         .update(agentRules)
         .set({ enabled })
         .where(
-          and(
-            eq(agentRules.agentId, agentId),
-            eq(agentRules.agentTypeRuleId, ruleId)
-          )
+          and(eq(agentRules.agentId, agentId), eq(agentRules.ruleId, ruleId))
         )
     )
   );

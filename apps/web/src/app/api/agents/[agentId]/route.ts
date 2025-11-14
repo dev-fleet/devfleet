@@ -4,8 +4,8 @@ import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
 import {
   agents,
-  agentTypes,
-  agentTypeRules,
+  agentTemplates,
+  rules,
   agentRules,
   prCheckRuns,
   pullRequests,
@@ -32,7 +32,7 @@ async function getAgentDetail(userId: string, agentId: string) {
     .select({
       id: agents.id,
       name: agents.name,
-      agentTypeId: agents.agentTypeId,
+      agentTemplateId: agents.agentTemplateId,
       prompt: agents.prompt,
       engine: agents.engine,
       archived: agents.archived,
@@ -53,45 +53,45 @@ async function getAgentDetail(userId: string, agentId: string) {
     throw new Error("Agent not found");
   }
 
-  // Get agent type information
-  const agentType = await db
+  // Get agent template information
+  const agentTemplate = await db
     .select({
-      id: agentTypes.id,
-      name: agentTypes.name,
-      slug: agentTypes.slug,
-      description: agentTypes.description,
-      basePrompt: agentTypes.basePrompt,
-      category: agentTypes.category,
-      icon: agentTypes.icon,
+      id: agentTemplates.id,
+      name: agentTemplates.name,
+      slug: agentTemplates.slug,
+      description: agentTemplates.description,
+      basePrompt: agentTemplates.basePrompt,
+      category: agentTemplates.category,
+      icon: agentTemplates.icon,
     })
-    .from(agentTypes)
-    .where(eq(agentTypes.id, theAgent[0].agentTypeId))
+    .from(agentTemplates)
+    .where(eq(agentTemplates.id, theAgent[0].agentTemplateId))
     .limit(1);
 
-  // Get all rules for this agent type with their enabled status
+  // Get all rules for this agent template with their enabled status
   const rulesRaw = await db
     .select({
-      id: agentTypeRules.id,
-      name: agentTypeRules.name,
-      description: agentTypeRules.description,
-      severity: agentTypeRules.severity,
-      category: agentTypeRules.category,
-      order: agentTypeRules.order,
+      id: rules.id,
+      name: rules.name,
+      description: rules.description,
+      severity: rules.severity,
+      category: rules.category,
+      order: rules.order,
       agentRuleId: agentRules.id,
       enabled: agentRules.enabled,
     })
-    .from(agentTypeRules)
+    .from(rules)
     .leftJoin(
       agentRules,
       and(
-        eq(agentRules.agentTypeRuleId, agentTypeRules.id),
+        eq(agentRules.ruleId, rules.id),
         eq(agentRules.agentId, agentId)
       )
     )
-    .where(eq(agentTypeRules.agentTypeId, theAgent[0].agentTypeId))
-    .orderBy(agentTypeRules.order);
+    .where(eq(rules.agentTemplateId, theAgent[0].agentTemplateId))
+    .orderBy(rules.order);
 
-  const rules = rulesRaw.map((r) => ({
+  const agentRulesData = rulesRaw.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
@@ -164,8 +164,8 @@ async function getAgentDetail(userId: string, agentId: string) {
 
   return {
     agent: theAgent[0],
-    agentType: agentType[0] ?? null,
-    rules,
+    agentTemplate: agentTemplate[0] ?? null,
+    rules: agentRulesData,
     reposUsing: reposUsingWithLastRun,
     recentRuns: recentRunsRaw,
   } as const;
