@@ -7,8 +7,6 @@ import { createId } from "@paralleldrive/cuid2";
  * Seed initial agent templates and their rules
  */
 export async function seedAgentTemplates() {
-  console.log("Seeding agent templates and rules...");
-
   // TypeScript Agent Template
   const tsAgentId = createId();
   await db.insert(agentTemplates).values({
@@ -318,8 +316,6 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
       ...rule,
     });
   }
-
-  console.log("✅ Agent templates and rules seeded successfully!");
 }
 
 const seed = async () => {
