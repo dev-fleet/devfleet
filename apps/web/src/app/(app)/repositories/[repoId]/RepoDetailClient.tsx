@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { InsetHeader } from "@/components/sidebar/inset-header";
-import { GitBranch, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -79,27 +79,26 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
         {/* Repository Header */}
         <div className="flex flex-col gap-4">
           <div className="flex items-start justify-between">
-            <div className="flex items-start gap-3">
-              <GitBranch className="h-8 w-8 text-muted-foreground mt-1" />
-              <div>
-                <h1 className="text-3xl font-bold">{repository.name}</h1>
-                {repository.description && (
-                  <p className="text-muted-foreground mt-1">
-                    {repository.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                  <span>Default branch: {repository.defaultBranch}</span>
-                  <Link
+            <div>
+              <h1 className="text-2xl font-bold">{repository.name}</h1>
+              {repository.description && (
+                <p className="text-muted-foreground mt-1">
+                  {repository.description}
+                </p>
+              )}
+              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                <span>Default branch: {repository.defaultBranch}</span>
+                <Button variant="link" className="h-auto p-0" size="sm" asChild>
+                  <a
                     href={repository.htmlUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    className="flex items-center gap-1"
                   >
                     View on GitHub
-                    <ExternalLink className="h-3 w-3" />
-                  </Link>
-                </div>
+                    <ExternalLink />
+                  </a>
+                </Button>
               </div>
             </div>
           </div>
