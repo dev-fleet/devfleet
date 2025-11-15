@@ -76,7 +76,7 @@ export function ReposTableClient() {
                 </TableCell>
               </TableRow>
             )}
-            {filteredRepos.length === 0 ? (
+            {!error && data && filteredRepos.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={3}
@@ -85,7 +85,9 @@ export function ReposTableClient() {
                   No repositories found
                 </TableCell>
               </TableRow>
-            ) : (
+            )}
+            {data &&
+              filteredRepos.length > 0 &&
               filteredRepos.map((repo) => (
                 <TableRow
                   key={repo.id}
@@ -123,8 +125,7 @@ export function ReposTableClient() {
                     </Link>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
+              ))}
           </TableBody>
         </Table>
       </div>
