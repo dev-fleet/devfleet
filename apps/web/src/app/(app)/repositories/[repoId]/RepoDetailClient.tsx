@@ -127,7 +127,7 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
                 No agents configured for this repository
               </div>
             ) : (
-              <AgentsList repoId={repoId} agents={repoAgents} />
+              <AgentsList agents={repoAgents} />
             )}
           </CardContent>
         </Card>

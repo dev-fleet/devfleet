@@ -367,7 +367,6 @@ export const repoAgents = pgTable(
       .notNull()
       .references(() => agents.id, { onDelete: "cascade" }),
     enabled: boolean("enabled").notNull().default(true),
-    order: integer("order").notNull().default(0),
     ...timestamps,
   },
   (table) => [

@@ -35,8 +35,7 @@ async function getAgentsForRepositoryByGithubId(repoGithubId: number) {
     })
     .from(repoAgents)
     .innerJoin(agents, eq(repoAgents.agentId, agents.id))
-    .where(and(eq(repoAgents.repoId, repoId), eq(repoAgents.enabled, true)))
-    .orderBy(repoAgents.order);
+    .where(and(eq(repoAgents.repoId, repoId), eq(repoAgents.enabled, true)));
 
   return rows;
 }
@@ -94,9 +93,13 @@ export async function updateCheckRun(
   return response.data;
 }
 
-export async function runAgent(installationId: number, repoId: string, repoAgentId: string, agentId: string) {
+export async function runAgent(
+  installationId: number,
+  repoId: string,
+  repoAgentId: string,
+  agentId: string
+) {
   "use step";
   // TODO: Implement actual agent execution. For now, this is a no-op placeholder
   // that can be awaited concurrently.
 }
-

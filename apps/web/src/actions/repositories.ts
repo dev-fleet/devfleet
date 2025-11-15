@@ -3,7 +3,7 @@
 import { getSession } from "@/utils/auth";
 import { db } from "@/db";
 import { repositories, repoAgents, agents, users } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Get the current user's default organization ID
@@ -69,21 +69,12 @@ export async function addAgentToRepository(repoId: string, agentId: string) {
     throw new Error("Agent not found");
   }
 
-  // Get the current max order for this repo
-  const maxOrderResult = await db
-    .select({ maxOrder: sql<number>`coalesce(max(${repoAgents.order}), -1)` })
-    .from(repoAgents)
-    .where(eq(repoAgents.repoId, repoId));
-
-  const nextOrder = (maxOrderResult[0]?.maxOrder ?? -1) + 1;
-
   // Insert the new repo agent
   await db.insert(repoAgents).values({
     ownerGhOrganizationId: orgId,
     repoId,
     agentId,
     enabled: true,
-    order: nextOrder,
   });
 
   return { success: true };
@@ -136,35 +127,4 @@ export async function toggleAgentEnabled(repoAgentId: string) {
     .where(eq(repoAgents.id, repoAgentId));
 
   return { success: true, enabled: !currentRepoAgent[0].enabled };
-}
-
-/**
- * Reorder agents for a repository
- */
-export async function reorderAgents(
-  repoId: string,
-  agentOrders: { repoAgentId: string; order: number }[]
-) {
-  const orgId = await getDefaultOrgId();
-
-  // Verify repo belongs to org
-  await getRepository(repoId);
-
-  // Update all orders in a transaction
-  await Promise.all(
-    agentOrders.map(({ repoAgentId, order }) =>
-      db
-        .update(repoAgents)
-        .set({ order })
-        .where(
-          and(
-            eq(repoAgents.id, repoAgentId),
-            eq(repoAgents.repoId, repoId),
-            eq(repoAgents.ownerGhOrganizationId, orgId)
-          )
-        )
-    )
-  );
-
-  return { success: true };
 }

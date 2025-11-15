@@ -25,7 +25,6 @@ async function getRepositoryAgents(userId: string, repoId: string) {
       agentDescription: agents.description,
       agentEngine: agents.engine,
       enabled: repoAgents.enabled,
-      order: repoAgents.order,
     })
     .from(repoAgents)
     .innerJoin(agents, eq(repoAgents.agentId, agents.id))
@@ -34,8 +33,7 @@ async function getRepositoryAgents(userId: string, repoId: string) {
         eq(repoAgents.repoId, repoId),
         eq(repoAgents.ownerGhOrganizationId, orgId)
       )
-    )
-    .orderBy(repoAgents.order);
+    );
 
   return repoAgentsData;
 }

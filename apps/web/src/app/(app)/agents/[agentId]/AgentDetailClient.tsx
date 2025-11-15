@@ -168,7 +168,6 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
                 <TableRow>
                   <TableHead>Repo</TableHead>
                   <TableHead className="text-center">Enabled</TableHead>
-                  <TableHead className="text-center">Order</TableHead>
                   <TableHead>Last run status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -196,7 +195,6 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
                       <TableCell className="text-center">
                         {r.enabled ? "Yes" : "No"}
                       </TableCell>
-                      <TableCell className="text-center">{r.order}</TableCell>
                       <TableCell>
                         <span className="capitalize">
                           {r.lastRunStatus ?? "—"}

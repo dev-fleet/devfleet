@@ -83,10 +83,7 @@ async function getAgentDetail(userId: string, agentId: string) {
     .from(rules)
     .leftJoin(
       agentRules,
-      and(
-        eq(agentRules.ruleId, rules.id),
-        eq(agentRules.agentId, agentId)
-      )
+      and(eq(agentRules.ruleId, rules.id), eq(agentRules.agentId, agentId))
     )
     .where(eq(rules.agentTemplateId, theAgent[0].agentTemplateId))
     .orderBy(rules.order);
@@ -107,7 +104,6 @@ async function getAgentDetail(userId: string, agentId: string) {
       repoId: repositories.id,
       repoName: repositories.name,
       enabled: repoAgents.enabled,
-      order: repoAgents.order,
     })
     .from(repoAgents)
     .innerJoin(repositories, eq(repoAgents.repoId, repositories.id))
@@ -116,8 +112,7 @@ async function getAgentDetail(userId: string, agentId: string) {
         eq(repoAgents.agentId, agentId),
         eq(repoAgents.ownerGhOrganizationId, orgId)
       )
-    )
-    .orderBy(repoAgents.order);
+    );
 
   // Recent runs for this agent (latest 10)
   const recentRunsRaw = await db
