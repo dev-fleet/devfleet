@@ -5,13 +5,7 @@ import { formatDistanceToNow } from "date-fns";
 import { InsetHeader } from "@/components/sidebar/inset-header";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
+import { Separator } from "@workspace/ui/components/separator";
 import { Badge } from "@workspace/ui/components/badge";
 import {
   Table,
@@ -104,133 +98,131 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
           </div>
         </div>
 
+        <Separator />
+
         {/* Active Agents */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Active Agents</CardTitle>
-                <CardDescription>
-                  Manage agents that run on PRs for this repository
-                </CardDescription>
-              </div>
-              <AddAgentDialog
-                repoId={repoId}
-                orgAgents={orgAgents}
-                currentAgentIds={repoAgents.map((ra) => ra.agentId)}
-              />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Active Agents</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage agents that run on PRs for this repository
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            {repoAgents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No agents configured for this repository
-              </div>
-            ) : (
-              <AgentsList agents={repoAgents} />
-            )}
-          </CardContent>
-        </Card>
+            <AddAgentDialog
+              repoId={repoId}
+              orgAgents={orgAgents}
+              currentAgentIds={repoAgents.map((ra) => ra.agentId)}
+            />
+          </div>
+          {repoAgents.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No agents configured for this repository
+            </div>
+          ) : (
+            <AgentsList agents={repoAgents} />
+          )}
+        </div>
+
+        <Separator />
 
         {/* Recent PRs */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Pull Requests</CardTitle>
-            <CardDescription>
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">Recent Pull Requests</h2>
+            <p className="text-sm text-muted-foreground">
               Latest pull requests for this repository
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {pullRequests.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No pull requests found
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>PR</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead className="text-center">Gate</TableHead>
-                    <TableHead>Failing Agents</TableHead>
-                    <TableHead>Updated</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pullRequests.map((pr) => (
-                    <TableRow key={pr.id}>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Link
-                            href={pr.htmlUrl || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-medium hover:underline flex items-center gap-1"
-                          >
-                            #{pr.prNumber} {pr.title}
-                            <ExternalLink className="h-3 w-3" />
-                          </Link>
-                          <Badge
-                            variant={
-                              pr.state === "open"
-                                ? "default"
-                                : pr.state === "merged"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                            className="w-fit"
-                          >
-                            {pr.state}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground">
-                          @{pr.authorLogin}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
+            </p>
+          </div>
+          {pullRequests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No pull requests found
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>PR</TableHead>
+                  <TableHead>Author</TableHead>
+                  <TableHead className="text-center">Gate</TableHead>
+                  <TableHead>Failing Agents</TableHead>
+                  <TableHead>Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pullRequests.map((pr) => (
+                  <TableRow key={pr.id}>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Link
+                          href={pr.htmlUrl || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium hover:underline flex items-center gap-1"
+                        >
+                          #{pr.prNumber} {pr.title}
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
                         <Badge
                           variant={
-                            pr.gateStatus === "pass"
+                            pr.state === "open"
                               ? "default"
-                              : pr.gateStatus === "fail"
-                                ? "destructive"
-                                : "secondary"
+                              : pr.state === "merged"
+                                ? "secondary"
+                                : "outline"
                           }
+                          className="w-fit"
                         >
-                          {pr.gateStatus}
+                          {pr.state}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {pr.failingAgents.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {pr.failingAgents.map((agentName, idx) => (
-                              <Badge key={idx} variant="outline">
-                                {agentName}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">
-                            None
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {formatDistanceToNow(new Date(pr.updatedAt), {
-                            addSuffix: true,
-                          })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground">
+                        @{pr.authorLogin}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={
+                          pr.gateStatus === "pass"
+                            ? "default"
+                            : pr.gateStatus === "fail"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {pr.gateStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {pr.failingAgents.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {pr.failingAgents.map((agentName, idx) => (
+                            <Badge key={idx} variant="outline">
+                              {agentName}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          None
                         </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(pr.updatedAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
     </>
   );
