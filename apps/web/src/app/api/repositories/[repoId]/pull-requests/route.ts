@@ -49,10 +49,22 @@ async function getRepositoryPullRequests(userId: string, repoId: string) {
       id: pullRequests.id,
       prNumber: pullRequests.prNumber,
       title: pullRequests.title,
+      description: pullRequests.description,
       authorLogin: pullRequests.authorLogin,
       state: pullRequests.state,
+      draft: pullRequests.draft,
       htmlUrl: pullRequests.htmlUrl,
+      labels: pullRequests.labels,
+      assignees: pullRequests.assignees,
+      requestedReviewers: pullRequests.requestedReviewers,
+      mergedAt: pullRequests.mergedAt,
+      closedAt: pullRequests.closedAt,
+      mergedBy: pullRequests.mergedBy,
+      firstReviewAt: pullRequests.firstReviewAt,
+      approvalStatus: pullRequests.approvalStatus,
+      reviewCount: pullRequests.reviewCount,
       updatedAt: pullRequests.updatedAt,
+      createdAt: pullRequests.createdAt,
     })
     .from(pullRequests)
     .where(eq(pullRequests.repoId, repoId))

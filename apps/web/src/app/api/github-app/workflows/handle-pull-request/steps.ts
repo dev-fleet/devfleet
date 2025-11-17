@@ -3,6 +3,8 @@ import { App, Octokit } from "octokit";
 import { db } from "@/db";
 import { agents, repoAgents, repositories } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import { storePullRequestFromWebhook } from "../../helpers-pr";
+import type { PullRequestOpenedOrSynchronizePayload } from "./index";
 
 import { Buffer } from "buffer";
 
@@ -38,6 +40,18 @@ async function getAgentsForRepositoryByGithubId(repoGithubId: number) {
     .where(and(eq(repoAgents.repoId, repoId), eq(repoAgents.enabled, true)));
 
   return rows;
+}
+
+export async function ensurePullRequestStored(
+  payload: PullRequestOpenedOrSynchronizePayload
+) {
+  "use step";
+  const result = await storePullRequestFromWebhook(payload);
+  if (!result.success) {
+    console.error("Failed to store pull request:", result.error);
+    throw new Error(`Failed to store pull request: ${result.error}`);
+  }
+  return result.pullRequestId!;
 }
 
 export async function createPendingCheckRun(

@@ -4,6 +4,7 @@ import { App } from "octokit";
 import { start } from "workflow/api";
 import { handlePullRequest } from "../workflows/handle-pull-request";
 import type { PullRequestOpenedOrSynchronizePayload } from "../workflows/handle-pull-request";
+import { storePullRequestFromWebhook } from "../helpers-pr";
 
 const handler = async (request: NextRequest) => {
   const signature = request.headers.get("x-hub-signature-256");
@@ -154,12 +155,36 @@ const handler = async (request: NextRequest) => {
   app.webhooks.on(
     ["pull_request.opened", "pull_request.synchronize"],
     async ({ payload }) => {
-      console.log("Pull request opened:", payload);
+      console.log("Pull request opened or synchronized:", payload);
       await start(handlePullRequest, [
         payload as PullRequestOpenedOrSynchronizePayload,
       ]);
     }
   );
+
+  // Handle PR closed (could be merged or just closed)
+  app.webhooks.on("pull_request.closed", async ({ payload }) => {
+    console.log("Pull request closed:", payload);
+    await storePullRequestFromWebhook(payload);
+  });
+
+  // Handle PR reopened
+  app.webhooks.on("pull_request.reopened", async ({ payload }) => {
+    console.log("Pull request reopened:", payload);
+    await storePullRequestFromWebhook(payload);
+  });
+
+  // Handle PR converted to draft
+  app.webhooks.on("pull_request.converted_to_draft", async ({ payload }) => {
+    console.log("Pull request converted to draft:", payload);
+    await storePullRequestFromWebhook(payload);
+  });
+
+  // Handle PR ready for review
+  app.webhooks.on("pull_request.ready_for_review", async ({ payload }) => {
+    console.log("Pull request ready for review:", payload);
+    await storePullRequestFromWebhook(payload);
+  });
 
   // Repository events
   // app.webhooks.on("repository.archived", async ({ payload }) => {
