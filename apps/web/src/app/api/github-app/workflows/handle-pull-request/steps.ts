@@ -1,10 +1,8 @@
 import { env } from "@/env.mjs";
-import { App, Octokit } from "octokit";
+import { App } from "octokit";
 import { db } from "@/db";
 import { agents, repoAgents, repositories } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { storePullRequestFromWebhook } from "@/utils/github-app/pull-requests";
-import type { PullRequestOpenedOrSynchronizePayload } from "./index";
 
 import { Buffer } from "buffer";
 
@@ -40,18 +38,6 @@ async function getAgentsForRepositoryByGithubId(repoGithubId: number) {
     .where(and(eq(repoAgents.repoId, repoId), eq(repoAgents.enabled, true)));
 
   return rows;
-}
-
-export async function ensurePullRequestStored(
-  payload: PullRequestOpenedOrSynchronizePayload
-) {
-  "use step";
-  const result = await storePullRequestFromWebhook(payload);
-  if (!result.success) {
-    console.error("Failed to store pull request:", result.error);
-    throw new Error(`Failed to store pull request: ${result.error}`);
-  }
-  return result.pullRequestId!;
 }
 
 export async function createPendingCheckRun(
@@ -108,10 +94,10 @@ export async function updateCheckRun(
 }
 
 export async function runAgent(
-  installationId: number,
-  repoId: string,
-  repoAgentId: string,
-  agentId: string
+  _installationId: number,
+  _repoId: string,
+  _repoAgentId: string,
+  _agentId: string
 ) {
   "use step";
   // TODO: Implement actual agent execution. For now, this is a no-op placeholder

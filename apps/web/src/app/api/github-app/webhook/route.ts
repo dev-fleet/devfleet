@@ -5,6 +5,7 @@ import { start } from "workflow/api";
 import { handlePullRequest } from "../workflows/handle-pull-request";
 import type { PullRequestOpenedOrSynchronizePayload } from "../workflows/handle-pull-request";
 import { storePullRequestFromWebhook } from "@/utils/github-app/pull-requests";
+import { hasActiveAgentsForRepository } from "@/utils/github-app/agents";
 
 const handler = async (request: NextRequest) => {
   const signature = request.headers.get("x-hub-signature-256");
@@ -156,9 +157,19 @@ const handler = async (request: NextRequest) => {
     ["pull_request.opened", "pull_request.synchronize"],
     async ({ payload }) => {
       console.log("Pull request opened or synchronized:", payload);
-      await start(handlePullRequest, [
-        payload as PullRequestOpenedOrSynchronizePayload,
-      ]);
+      const prPayload = payload as PullRequestOpenedOrSynchronizePayload;
+
+      // ALWAYS store PR data first
+      await storePullRequestFromWebhook(prPayload);
+
+      // Only start workflow if there are active agents
+      const hasActiveAgents = await hasActiveAgentsForRepository(
+        prPayload.repository.id
+      );
+
+      if (hasActiveAgents) {
+        await start(handlePullRequest, [prPayload]);
+      }
     }
   );
 
