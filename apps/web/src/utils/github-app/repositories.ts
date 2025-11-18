@@ -1,54 +1,37 @@
 import { db } from "@/db";
-import { Octokit } from "octokit";
-import { createAppAuth } from "@octokit/auth-app";
 import { ghOrganizations, repositories } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { env } from "@/env.mjs";
+import type { components } from "@octokit/openapi-webhooks-types";
+import { getAuthenticatedOctokit } from "./auth";
 
-async function getGitHubAppInstallationAccessToken(
-  installationId: string,
-  repositories?: string[]
-) {
-  const app = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId: env.GITHUB_APP_ID,
-      privateKey: Buffer.from(env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
-        "utf8"
-      ),
-      installationId,
-    },
-  });
+/**
+ * Pick only the repository fields we need from the full GitHub repository type
+ */
+type RepositoryData = Pick<
+  components["schemas"]["repository"],
+  | "id"
+  | "name"
+  | "full_name"
+  | "description"
+  | "private"
+  | "html_url"
+  | "clone_url"
+  | "ssh_url"
+  | "default_branch"
+  | "language"
+  | "stargazers_count"
+  | "forks_count"
+  | "open_issues_count"
+  | "visibility"
+  | "archived"
+  | "disabled"
+>;
 
-  const {
-    data: { token },
-  } = await app.rest.apps.createInstallationAccessToken({
-    installation_id: parseInt(installationId),
-    repositories,
-  });
-
-  return token;
-}
-
-export async function storeRepositoryFromGitHubApp(
-  repositoryData: {
-    id: number;
-    name: string;
-    full_name: string;
-    description: string | null;
-    private: boolean;
-    html_url: string;
-    clone_url: string;
-    ssh_url: string;
-    default_branch: string;
-    language: string | null;
-    stargazers_count: number;
-    forks_count: number;
-    open_issues_count: number;
-    visibility: string;
-    archived: boolean;
-    disabled: boolean;
-  },
+/**
+ * Store or update a repository from GitHub App data
+ */
+export async function storeRepository(
+  repositoryData: RepositoryData,
   organizationId: string
 ): Promise<{ success: boolean; repositoryId?: string; error?: string }> {
   try {
@@ -103,7 +86,7 @@ export async function storeRepositoryFromGitHubApp(
 
     return { success: true, repositoryId: repository.id };
   } catch (error) {
-    console.error("Error storing repository from GitHub App:", error);
+    console.error("Error storing repository:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -111,12 +94,15 @@ export async function storeRepositoryFromGitHubApp(
   }
 }
 
-export async function fetchRepositoriesFromGitHubApp(
+/**
+ * Fetch and store all repositories for a GitHub App installation
+ */
+export async function syncRepositoriesFromInstallation(
   installationId: string,
   organizationId: string
 ): Promise<{ success: boolean; count: number; error?: string }> {
   try {
-    // Get the organization to access the GitHub app installation ID
+    // Verify organization has GitHub app installation
     const organization = await db
       .select()
       .from(ghOrganizations)
@@ -127,14 +113,7 @@ export async function fetchRepositoriesFromGitHubApp(
       throw new Error("No GitHub app installation ID found for organization");
     }
 
-    // Get the GitHub App installation access token using JWT strategy
-    const installationToken =
-      await getGitHubAppInstallationAccessToken(installationId);
-
-    // Create Octokit instance with the installation access token
-    const octokit = new Octokit({
-      auth: installationToken,
-    });
+    const octokit = await getAuthenticatedOctokit(installationId);
 
     let totalRepositories = 0;
     const iterator = octokit.paginate.iterator(
@@ -146,11 +125,10 @@ export async function fetchRepositoriesFromGitHubApp(
     );
 
     for await (const response of iterator) {
-      const repositories = response.data;
+      const repos = response.data;
 
-      for (const repo of repositories) {
-        // Store each repository in the database
-        const storeResult = await storeRepositoryFromGitHubApp(
+      for (const repo of repos) {
+        const storeResult = await storeRepository(
           {
             id: repo.id,
             name: repo.name,
@@ -176,8 +154,7 @@ export async function fetchRepositoriesFromGitHubApp(
           totalRepositories++;
         } else {
           console.error(
-            "Failed to store repository:",
-            repo.full_name,
+            `Failed to store repository: ${repo.full_name}`,
             storeResult.error
           );
         }
@@ -185,12 +162,12 @@ export async function fetchRepositoriesFromGitHubApp(
     }
 
     console.log(
-      `Successfully fetched and stored ${totalRepositories} repositories for installation ${installationId}`
+      `Synced ${totalRepositories} repositories for installation ${installationId}`
     );
 
     return { success: true, count: totalRepositories };
   } catch (error) {
-    console.error("Error fetching repositories from GitHub App:", error);
+    console.error("Error syncing repositories from installation:", error);
     return {
       success: false,
       count: 0,

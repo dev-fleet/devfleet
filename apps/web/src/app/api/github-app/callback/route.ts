@@ -6,7 +6,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { Octokit, OAuthApp } from "octokit";
 import { ghOrganizations, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { fetchRepositoriesFromGitHubApp } from "../helpers";
+import { syncRepositoriesFromInstallation } from "@/utils/github-app/repositories";
 import { withAuth } from "@/utils/middleware";
 
 export const GET = withAuth(async (req) => {
@@ -101,7 +101,7 @@ export const GET = withAuth(async (req) => {
       .where(eq(ghOrganizations.id, activeOrganizationId));
 
     // Fetch all repositories the GitHub app has access to and save them to database
-    const fetchResult = await fetchRepositoriesFromGitHubApp(
+    const fetchResult = await syncRepositoriesFromInstallation(
       installationId,
       activeOrganizationId
     );

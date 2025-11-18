@@ -4,7 +4,7 @@ import { App } from "octokit";
 import { start } from "workflow/api";
 import { handlePullRequest } from "../workflows/handle-pull-request";
 import type { PullRequestOpenedOrSynchronizePayload } from "../workflows/handle-pull-request";
-import { storePullRequestFromWebhook } from "../helpers-pr";
+import { storePullRequestFromWebhook } from "@/utils/github-app/pull-requests";
 
 const handler = async (request: NextRequest) => {
   const signature = request.headers.get("x-hub-signature-256");

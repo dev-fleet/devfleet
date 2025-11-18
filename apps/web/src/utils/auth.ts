@@ -61,5 +61,11 @@ export const auth = betterAuth({
   },
 });
 
+// Disable caching for session on "development" environment
 export const getSession = async () =>
-  auth.api.getSession({ headers: await headers() });
+  auth.api.getSession({
+    ...(env.NODE_ENV === "development" && {
+      query: { disableCookieCache: true },
+    }),
+    headers: await headers(),
+  });

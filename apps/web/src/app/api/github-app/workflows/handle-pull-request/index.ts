@@ -1,5 +1,10 @@
 import type { components } from "@octokit/openapi-webhooks-types";
-import { ensurePullRequestStored, createPendingCheckRun, updateCheckRun, runAgent } from "./steps";
+import {
+  ensurePullRequestStored,
+  createPendingCheckRun,
+  updateCheckRun,
+  runAgent,
+} from "./steps";
 
 export type PullRequestOpenedOrSynchronizePayload =
   | components["schemas"]["webhook-pull-request-opened"]

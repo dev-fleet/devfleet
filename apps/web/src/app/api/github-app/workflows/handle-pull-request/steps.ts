@@ -3,7 +3,7 @@ import { App, Octokit } from "octokit";
 import { db } from "@/db";
 import { agents, repoAgents, repositories } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { storePullRequestFromWebhook } from "../../helpers-pr";
+import { storePullRequestFromWebhook } from "@/utils/github-app/pull-requests";
 import type { PullRequestOpenedOrSynchronizePayload } from "./index";
 
 import { Buffer } from "buffer";

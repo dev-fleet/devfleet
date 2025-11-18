@@ -1,9 +1,7 @@
 import { db } from "@/db";
 import { pullRequests, repositories } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { Octokit } from "octokit";
-import { createAppAuth } from "@octokit/auth-app";
-import { env } from "@/env.mjs";
+import { eq } from "drizzle-orm";
+import { getAuthenticatedOctokit } from "./auth";
 import type { components } from "@octokit/openapi-webhooks-types";
 
 type PullRequestPayload =
@@ -15,31 +13,7 @@ type PullRequestPayload =
   | components["schemas"]["webhook-pull-request-ready-for-review"];
 
 /**
- * Get GitHub App installation access token
- */
-async function getGitHubAppInstallationAccessToken(installationId: number) {
-  const octokit = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId: env.GITHUB_APP_ID,
-      privateKey: Buffer.from(env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
-        "utf8"
-      ),
-      installationId: installationId.toString(),
-    },
-  });
-
-  const {
-    data: { token },
-  } = await octokit.rest.apps.createInstallationAccessToken({
-    installation_id: installationId,
-  });
-
-  return token;
-}
-
-/**
- * Maps GitHub PR state to our database state enum
+ * Map GitHub PR state to database enum
  */
 function mapPullRequestState(
   state: string,
@@ -53,7 +27,7 @@ function mapPullRequestState(
 }
 
 /**
- * Stores or updates a pull request from a webhook payload
+ * Store or update a pull request from webhook payload
  */
 export async function storePullRequestFromWebhook(
   payload: PullRequestPayload
@@ -62,7 +36,7 @@ export async function storePullRequestFromWebhook(
     const pr = payload.pull_request;
     const repoGithubId = payload.repository.id.toString();
 
-    // Find the repository in our database
+    // Find repository
     const repoRecord = await db
       .select({ id: repositories.id })
       .from(repositories)
@@ -77,13 +51,10 @@ export async function storePullRequestFromWebhook(
     }
 
     const repoId = repoRecord[0].id;
-
-    // Determine if PR is merged
     const isMerged = pr.merged || false;
     const isDraft = pr.draft || false;
     const state = mapPullRequestState(pr.state, isDraft, isMerged);
 
-    // Extract labels
     const labels = pr.labels
       ? pr.labels.map((label) => ({
           id: label.id,
@@ -93,23 +64,19 @@ export async function storePullRequestFromWebhook(
         }))
       : [];
 
-    // Extract assignees
+    // Weird but assignees can be null[]. Filter out nulls.
     const assignees = pr.assignees
-      ? pr.assignees.map((assignee) => assignee.login)
+      ? pr.assignees.map((assignee) => assignee?.login).filter(Boolean)
       : [];
 
-    // Extract requested reviewers
+    // Similar to assignees, requested reviewers can be null[]. Filter out nulls.
     const requestedReviewers = pr.requested_reviewers
-      ? pr.requested_reviewers.map((reviewer) => {
-          // Handle both user and team reviewers
-          if ("login" in reviewer) {
-            return reviewer.login;
-          }
-          return null;
-        }).filter(Boolean)
+      ? pr.requested_reviewers
+          .filter((reviewer) => reviewer !== null)
+          .map((reviewer) => ("login" in reviewer ? reviewer.login : null))
+          .filter(Boolean)
       : [];
 
-    // Prepare PR data
     const prData = {
       repoId,
       prNumber: pr.number,
@@ -130,7 +97,6 @@ export async function storePullRequestFromWebhook(
       updatedAt: new Date(),
     };
 
-    // Upsert the pull request
     const [upsertedPr] = await db
       .insert(pullRequests)
       .values(prData)
@@ -139,6 +105,10 @@ export async function storePullRequestFromWebhook(
         set: prData,
       })
       .returning({ id: pullRequests.id });
+
+    if (!upsertedPr) {
+      throw new Error("Failed to upsert pull request");
+    }
 
     return {
       success: true,
@@ -153,22 +123,23 @@ export async function storePullRequestFromWebhook(
   }
 }
 
+interface ReviewData {
+  approvalStatus: "approved" | "changes_requested" | "pending" | null;
+  reviewCount: number;
+  firstReviewAt: Date | null;
+}
+
 /**
- * Fetches review data from GitHub API for a pull request
+ * Fetch review data from GitHub API for a pull request
  */
 export async function fetchPullRequestReviews(
   installationId: number,
   owner: string,
   repo: string,
   prNumber: number
-): Promise<{
-  approvalStatus: "approved" | "changes_requested" | "pending" | null;
-  reviewCount: number;
-  firstReviewAt: Date | null;
-}> {
+): Promise<ReviewData> {
   try {
-    const token = await getGitHubAppInstallationAccessToken(installationId);
-    const octokit = new Octokit({ auth: token });
+    const octokit = await getAuthenticatedOctokit(installationId);
 
     const { data: reviews } = await octokit.rest.pulls.listReviews({
       owner,
@@ -184,7 +155,7 @@ export async function fetchPullRequestReviews(
       };
     }
 
-    // Sort reviews by submitted_at to find the first one
+    // Find first review
     const sortedReviews = reviews
       .filter((r) => r.submitted_at)
       .sort(
@@ -197,12 +168,8 @@ export async function fetchPullRequestReviews(
       ? new Date(sortedReviews[0].submitted_at)
       : null;
 
-    // Determine approval status based on latest reviews from each reviewer
-    // GitHub's logic: check the most recent review from each unique reviewer
-    const latestReviewByUser = new Map<
-      string,
-      (typeof reviews)[number]
-    >();
+    // Get latest review from each reviewer
+    const latestReviewByUser = new Map<string, (typeof reviews)[number]>();
 
     for (const review of reviews) {
       if (!review.user?.login) continue;
@@ -248,7 +215,7 @@ export async function fetchPullRequestReviews(
 }
 
 /**
- * Enriches a pull request with review data from GitHub API
+ * Enrich a pull request with review data from GitHub API
  */
 export async function enrichPullRequestWithReviewData(
   pullRequestId: string,
@@ -284,4 +251,3 @@ export async function enrichPullRequestWithReviewData(
     };
   }
 }
-
