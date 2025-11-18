@@ -143,6 +143,7 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>PR</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Author</TableHead>
                   <TableHead className="text-center">Gate</TableHead>
                   <TableHead>Failing Agents</TableHead>
@@ -153,29 +154,29 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
                 {pullRequests.map((pr) => (
                   <TableRow key={pr.id}>
                     <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Link
-                          href={pr.htmlUrl || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium hover:underline flex items-center gap-1"
-                        >
-                          #{pr.prNumber} {pr.title}
-                          <ExternalLink className="h-3 w-3" />
-                        </Link>
-                        <Badge
-                          variant={
-                            pr.state === "open"
-                              ? "default"
-                              : pr.state === "merged"
-                                ? "secondary"
-                                : "outline"
-                          }
-                          className="w-fit"
-                        >
-                          {pr.state}
-                        </Badge>
-                      </div>
+                      <Link
+                        href={pr.htmlUrl || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium hover:underline flex items-center gap-1"
+                      >
+                        #{pr.prNumber} {pr.title}
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          pr.state === "open"
+                            ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20 hover:bg-green-500/25"
+                            : pr.state === "merged"
+                              ? "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20 hover:bg-purple-500/25"
+                              : "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 hover:bg-red-500/25"
+                        }
+                      >
+                        {pr.state}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <span className="text-muted-foreground">
@@ -184,12 +185,13 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
-                        variant={
+                        variant="outline"
+                        className={
                           pr.gateStatus === "pass"
-                            ? "default"
+                            ? "bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/20 hover:bg-green-500/25"
                             : pr.gateStatus === "fail"
-                              ? "destructive"
-                              : "secondary"
+                              ? "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 hover:bg-red-500/25"
+                              : "bg-gray-500/15 text-gray-700 dark:text-gray-400 border-gray-500/20 hover:bg-gray-500/25"
                         }
                       >
                         {pr.gateStatus}
