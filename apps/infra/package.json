@@ -1,0 +1,20 @@
+{
+  "name": "infra",
+  "version": "0.0.1",
+  "description": "e2b docker image builder",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "build:dev": "tsx build.dev.ts",
+    "build:prod": "tsx build.prod.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tsx": "^4.20.6"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "e2b": "^2.7.0"
+  }
+}

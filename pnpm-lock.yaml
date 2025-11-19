@@ -91,6 +91,19 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  apps/infra:
+    dependencies:
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
+      e2b:
+        specifier: ^2.7.0
+        version: 2.7.0
+    devDependencies:
+      tsx:
+        specifier: ^4.20.6
+        version: 4.20.6
+
   apps/web:
     dependencies:
       '@ai-sdk/anthropic':
@@ -4443,6 +4456,10 @@ packages:
 
   e2b@2.6.3:
     resolution: {integrity: sha512-/y8+dOmFdSmZLFX/dku+qsNmiK8aNdyKznYvJequWVJo2EVzKfa7TbVGOMIhZmcMTu/B2eELgY1V8/fa3hw+Mw==}
+    engines: {node: '>=20'}
+
+  e2b@2.7.0:
+    resolution: {integrity: sha512-pbCbkkdkkY+yIhhtdSE7lM/vhIROtHNI0hNpj8lBphDILNH2qmmjhxU7/wam8/xWRbiWbfuQaOsv100lD32nag==}
     engines: {node: '>=20'}
 
   eastasianwidth@0.2.0:
@@ -12138,6 +12155,19 @@ snapshots:
       gopd: 1.2.0
 
   e2b@2.6.3:
+    dependencies:
+      '@bufbuild/protobuf': 2.10.0
+      '@connectrpc/connect': 2.0.0-rc.3(@bufbuild/protobuf@2.10.0)
+      '@connectrpc/connect-web': 2.0.0-rc.3(@bufbuild/protobuf@2.10.0)(@connectrpc/connect@2.0.0-rc.3(@bufbuild/protobuf@2.10.0))
+      chalk: 5.6.2
+      compare-versions: 6.1.1
+      dockerfile-ast: 0.7.1
+      glob: 11.0.3
+      openapi-fetch: 0.14.1
+      platform: 1.3.6
+      tar: 7.5.2
+
+  e2b@2.7.0:
     dependencies:
       '@bufbuild/protobuf': 2.10.0
       '@connectrpc/connect': 2.0.0-rc.3(@bufbuild/protobuf@2.10.0)
