@@ -53,7 +53,7 @@ export async function createAgentSandbox(
       command: string,
       options?: CommandOptions
     ): Promise<CommandResult> {
-      const { background, onStdout, onStderr, ...e2bOptions } = options || {};
+      const { background, ...e2bOptions } = options || {};
 
       if (background) {
         // Start command in background

@@ -28,7 +28,7 @@ export async function handlePullRequest(
   // Run all agents concurrently
   await Promise.all(
     agents.map(({ repoId, repoAgentId, agentId }) =>
-      runAgent(installationId, repoId, repoAgentId, agentId)
+      runAgent(installationId, repoId, headSha, repoAgentId, agentId)
     )
   );
 

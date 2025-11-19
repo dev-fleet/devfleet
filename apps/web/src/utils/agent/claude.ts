@@ -75,7 +75,7 @@ export async function buildAgentPrompt(agentId: string): Promise<string> {
 
 export function promptClaude(
   prompt: string,
-  model: string = "claude-sonnet-4-20250514"
+  model: string = "claude-sonnet-4-5-20250929"
 ) {
   const escapedPrompt = escapePrompt(prompt);
 
@@ -85,6 +85,8 @@ export function promptClaude(
     --append-system-prompt "${SYSTEM_PROMPT}" \
     --output-format stream-json \
     --verbose \
-    --allowedTools "Edit,Write,MultiEdit,Read,Bash" \
-    --model ${model || "claude-sonnet-4-20250514"}`;
+    --allowedTools "Read,Bash(gh pr view)" \
+    --model ${model}`;
+
+  return command;
 }
