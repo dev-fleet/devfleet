@@ -36,6 +36,7 @@ export const env = createEnv({
     GITHUB_APP_WEBHOOK_SECRET: z.string(),
 
     OPENAI_API_KEY: z.string(),
+    ANTHROPIC_API_KEY: z.string(),
     E2B_API_KEY: z.string(),
     MOCK_AI: z
       .string()
@@ -92,6 +93,7 @@ export const env = createEnv({
     GITHUB_APP_WEBHOOK_SECRET: process.env.GITHUB_APP_WEBHOOK_SECRET,
 
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     E2B_API_KEY: process.env.E2B_API_KEY,
     MOCK_AI: process.env.MOCK_AI,
 

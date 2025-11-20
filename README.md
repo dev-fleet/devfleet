@@ -35,6 +35,7 @@
 1. Set in .env: `NEXT_PUBLIC_GITHUB_APP_INSTALL_URL=https://github.com/apps/<your oauth app name>/installations/new`
 1. Set in .env: `BETTER_AUTH_SECRET=` to `openssl rand -base64 32 | pbcopy`
 1. Set in .env: `OPENAI_API_KEY=` to a new key https://platform.openai.com/settings/organization/api-keys
+1. Set in .env: `ANTHROPIC_API_KEY=` to a new key https://console.anthropic.com/settings/keys
 1. Set in .env: `E2B_API_KEY=` to a new key https://e2b.dev/
 1. Set in .env: `ENCRYPTION_KEY=` to `openssl rand -base64 32 | pbcopy`
 1. `npm install -g pnpm`

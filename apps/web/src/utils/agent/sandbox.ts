@@ -1,4 +1,8 @@
-import { Sandbox as E2BSandbox } from "@e2b/code-interpreter";
+import {
+  Sandbox as E2BSandbox,
+  type CommandResult,
+  type CommandStartOpts,
+} from "@e2b/code-interpreter";
 
 // This is a wrapper around E2B. If needed we can support other providers in the future.
 // eg Daytona, Vercel, Cloudflare, etc.
@@ -11,23 +15,12 @@ export type SandboxConfig = {
   templateId: string;
 };
 
-export type CommandResult = {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-};
-
-export type CommandOptions = {
-  background?: boolean;
-  cwd?: string;
-  timeout?: number;
-  onStdout?: (data: string) => void;
-  onStderr?: (data: string) => void;
-};
-
 export interface AgentSandbox {
   readonly id: string;
-  runCommand(command: string, options?: CommandOptions): Promise<CommandResult>;
+  runCommand(
+    command: string,
+    options?: CommandStartOpts
+  ): Promise<CommandResult>;
   kill(): Promise<void>;
   pause(): Promise<void>;
   getHost(port: number): Promise<string>;
@@ -51,14 +44,14 @@ export async function createAgentSandbox(
 
     async runCommand(
       command: string,
-      options?: CommandOptions
+      options?: CommandStartOpts
     ): Promise<CommandResult> {
-      const { background, ...e2bOptions } = options || {};
+      const { background } = options || {};
 
       if (background) {
         // Start command in background
         await sandbox.commands.run(command, {
-          ...e2bOptions,
+          ...options,
           background: true,
           onStdout: (data) => console.log("stdout", data),
           onStderr: (data) => console.error("stderr", data),
@@ -71,8 +64,11 @@ export async function createAgentSandbox(
         };
       }
 
-      // Run command synchronously
-      return await sandbox.commands.run(command, e2bOptions);
+      // Run command synchronously (background is explicitly false/undefined, so returns CommandResult)
+      return await sandbox.commands.run(command, {
+        ...options,
+        background: false,
+      });
     },
 
     async kill(): Promise<void> {

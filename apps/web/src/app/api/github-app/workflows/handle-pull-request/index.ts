@@ -1,5 +1,10 @@
 import type { components } from "@octokit/openapi-webhooks-types";
-import { createPendingCheckRun, updateCheckRun, runAgent } from "./steps";
+import {
+  createPendingCheckRun,
+  updateCheckRun,
+  runAgent,
+  fetchPullRequestFiles,
+} from "./steps";
 
 export type PullRequestOpenedOrSynchronizePayload =
   | components["schemas"]["webhook-pull-request-opened"]
@@ -15,6 +20,8 @@ export async function handlePullRequest(
   const repo = payload.repository.name;
   const headSha = payload.pull_request.head.sha;
   const repoId = payload.repository.id;
+  const prNumber = payload.pull_request.number;
+  const prTitle = payload.pull_request.title;
 
   // Step 1: Create a pending check run and resolve agents for this PR
   const { checkRun, agents } = await createPendingCheckRun(
