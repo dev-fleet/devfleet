@@ -4,6 +4,7 @@ const SYSTEM_PROMPT = "Don't ask any follow up questions.";
 
 export function promptClaude(
   prompt: string,
+  jsonSchema: string,
   model: string = "claude-sonnet-4-5-20250929"
 ) {
   const escapedPrompt = escapePrompt(diffPrompt(prompt));
@@ -14,7 +15,8 @@ export function promptClaude(
     --append-system-prompt "${SYSTEM_PROMPT}" \
     --output-format stream-json \
     --verbose \
-    --allowedTools "Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(git show:*), Bash(git remote show:*), Read, Glob, Grep, LS, Task" \
+    --json-schema ${jsonSchema} \
+    --allowedTools "Bash(git diff:*),Bash(git status:*),Bash(git log:*),Bash(git show:*),Bash(git remote show:*),Read,Glob,Grep,LS,Task" \
     --model ${model}`;
 
   return command;
