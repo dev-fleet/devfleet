@@ -184,10 +184,10 @@ export async function runAgent(
     });
 
     const agentPrompts = `TODO: Agent prompts`;
-    const jsonSchema = `{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","properties":{"file":{"type":"string"},"line":{"type":"integer","minimum":1},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH","CRITICAL"]},"category":{"type":"string"},"description":{"type":"string"},"exploit_scenario":{"type":"string"},"recommendation":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1}},"required":["file","line","severity","category","description","exploit_scenario","recommendation","confidence"],"additionalProperties":false}},"analysis_summary":{"type":"object","properties":{"files_reviewed":{"type":"integer","minimum":0},"high_severity":{"type":"integer","minimum":0},"medium_severity":{"type":"integer","minimum":0},"low_severity":{"type":"integer","minimum":0},"review_completed":{"type":"boolean"}},"required":["files_reviewed","high_severity","medium_severity","low_severity","review_completed"],"additionalProperties":false}},"required":["findings","analysis_summary"],"additionalProperties":false}`;
+    const jsonSchema = `{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","properties":{"file":{"type":"string"},"line":{"type":"integer","minimum":1},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH","CRITICAL"]},"category":{"type":"string"},"description":{"type":"string"},"exploit_scenario":{"type":"string"},"recommendation":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1}},"required":["file","line","severity","category","description","exploit_scenario","recommendation","confidence"],"additionalProperties":false}},"analysis_summary":{"type":"object","properties":{"files_reviewed":{"type":"integer","minimum":0},"high_severity":{"type":"integer","minimum":0},"medium_severity":{"type":"integer","minimum":0},"low_severity":{"type":"integer","minimum":0},"review_completed":{"type":"boolean"}},"required":["files_reviewed","high_severity","medium_severity","low_severity","review_completed"],"additionalProperties":false}}}`;
 
     const claudeResult = await sandbox.runCommand(
-      `cd /devfleet && ${promptClaude(agentPrompts, "claude-sonnet-4-5-20250929", jsonSchema)}`,
+      `cd /devfleet && ${promptClaude(agentPrompts, jsonSchema, "claude-sonnet-4-5-20250929")}`,
       {
         timeoutMs: 3600000, // 1 hour
         background: false,

@@ -7,15 +7,17 @@ export function promptClaude(
   jsonSchema: string,
   model: string = "claude-sonnet-4-5-20250929"
 ) {
+  // Escape the prompt and json schema
   const escapedPrompt = escapePrompt(diffPrompt(prompt));
+  const escapedJsonSchema = escapePrompt(jsonSchema);
 
   // Override the command config with history-aware instruction
   const command = `echo "${escapedPrompt}" | claude \
     -p \
     --append-system-prompt "${SYSTEM_PROMPT}" \
-    --output-format stream-json \
+    --output-format json \
     --verbose \
-    --json-schema ${jsonSchema} \
+    --json-schema "${escapedJsonSchema}" \
     --allowedTools "Bash(git diff:*),Bash(git status:*),Bash(git log:*),Bash(git show:*),Bash(git remote show:*),Read,Glob,Grep,LS,Task" \
     --model ${model}`;
 
