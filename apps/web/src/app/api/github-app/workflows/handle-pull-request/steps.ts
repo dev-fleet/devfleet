@@ -10,6 +10,71 @@ import { promptClaude } from "./prompt";
 import { CommandExitError } from "@e2b/code-interpreter";
 import { FatalError } from "workflow";
 import type { components } from "@octokit/openapi-types";
+import type Anthropic from "@anthropic-ai/sdk";
+
+// Types for Claude CLI output parsing
+// The CLI extends the SDK's Usage type with additional cache_creation details
+export type ClaudeResultUsage = Anthropic.Usage & {
+  cache_creation?: {
+    ephemeral_1h_input_tokens: number;
+    ephemeral_5m_input_tokens: number;
+  };
+};
+
+// CLI-specific per-model usage breakdown
+export interface ClaudeModelUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadInputTokens: number;
+  cacheCreationInputTokens: number;
+  webSearchRequests: number;
+  costUSD: number;
+  contextWindow: number;
+}
+
+// CLI-specific result type - this is not an SDK type, it's output from the Claude CLI
+export interface ClaudeResult {
+  type: "result";
+  subtype: "success" | "error";
+  is_error: boolean;
+  duration_ms: number;
+  duration_api_ms: number;
+  num_turns: number;
+  result: string;
+  session_id: string;
+  total_cost_usd: number;
+  usage: ClaudeResultUsage;
+  modelUsage: Record<string, ClaudeModelUsage>;
+  permission_denials: string[];
+  structured_output: Record<string, unknown> | null;
+  uuid: string;
+}
+
+/**
+ * Parses Claude CLI stdout output and extracts the result object.
+ * The stdout contains newline-separated JSON objects, and we need
+ * to find the one with type "result".
+ *
+ * @param stdout - The raw stdout string from Claude CLI
+ * @returns The parsed ClaudeResult object, or null if not found
+ */
+export function parseClaudeResult(stdout: string): ClaudeResult | null {
+  const lines = stdout.split("\n").filter((line) => line.trim());
+
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed.type === "result") {
+        return parsed as ClaudeResult;
+      }
+    } catch {
+      // Skip lines that aren't valid JSON
+      continue;
+    }
+  }
+
+  return null;
+}
 
 const app = new App({
   appId: env.GITHUB_APP_ID,
@@ -194,10 +259,22 @@ export async function runAgent(
       }
     );
 
-    console.log("Claude result");
-    console.log(claudeResult.stdout);
+    const parsedResult = parseClaudeResult(claudeResult.stdout);
 
-    // Run the agent
+    if (!parsedResult) {
+      throw new Error("Failed to parse Claude result from stdout");
+    }
+
+    if (parsedResult.is_error) {
+      throw new Error(`Claude execution failed: ${parsedResult.result}`);
+    }
+
+    console.log("Claude result parsed successfully");
+    console.log("Cost:", parsedResult.total_cost_usd, "USD");
+    console.log("Duration:", parsedResult.duration_ms, "ms");
+    console.log("Structured output:", parsedResult.structured_output);
+
+    return parsedResult;
   } catch (error) {
     if (error instanceof CommandExitError) {
       console.error("Command failed with exit code:", error.exitCode);
