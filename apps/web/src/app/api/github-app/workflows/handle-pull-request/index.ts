@@ -3,7 +3,8 @@ import {
   createPendingCheckRun,
   updateCheckRun,
   runAgent,
-  fetchPullRequestFiles,
+  saveAgentResults,
+  type AgentRunResult,
 } from "./steps";
 
 export type PullRequestOpenedOrSynchronizePayload =
@@ -11,7 +12,8 @@ export type PullRequestOpenedOrSynchronizePayload =
   | components["schemas"]["webhook-pull-request-synchronize"];
 
 export async function handlePullRequest(
-  payload: PullRequestOpenedOrSynchronizePayload
+  payload: PullRequestOpenedOrSynchronizePayload,
+  pullRequestId: string
 ) {
   "use workflow";
 
@@ -19,27 +21,58 @@ export async function handlePullRequest(
   const owner = payload.repository.owner.login;
   const repo = payload.repository.name;
   const headSha = payload.pull_request.head.sha;
-  const repoId = payload.repository.id;
-  const prNumber = payload.pull_request.number;
-  const prTitle = payload.pull_request.title;
+  const repoGithubId = payload.repository.id;
 
-  // Step 1: Create a pending check run and resolve agents for this PR
+  // Step: Create a pending check run and resolve agents for this PR
   const { checkRun, agents } = await createPendingCheckRun(
     installationId,
     owner,
     repo,
     headSha,
-    repoId
+    repoGithubId
   );
 
-  // Run all agents concurrently
-  await Promise.all(
+  // Step: Run all agents concurrently
+  const settledResults = await Promise.allSettled(
     agents.map(({ repoId, repoAgentId, agentId }) =>
-      runAgent(installationId, repoId, headSha, repoAgentId, agentId)
+      runAgent(installationId, repoId, headSha, repoAgentId, agentId).then(
+        (result) => ({ repoId, agentId, result })
+      )
     )
   );
 
-  // Step 2: Update the check run
+  // Step: Save the agent run outputs to the database
+  if (agents.length > 0) {
+    // Map settled results to AgentRunResult format
+    const agentResults: AgentRunResult[] = settledResults.map(
+      (settled, index) => {
+        const agent = agents[index]!;
+        if (settled.status === "fulfilled") {
+          return {
+            repoId: settled.value.repoId,
+            agentId: settled.value.agentId,
+            prId: pullRequestId,
+            result: settled.value.result,
+          };
+        } else {
+          return {
+            repoId: agent.repoId,
+            agentId: agent.agentId,
+            prId: pullRequestId,
+            result: null,
+            error:
+              settled.reason instanceof Error
+                ? settled.reason.message
+                : String(settled.reason),
+          };
+        }
+      }
+    );
+
+    await saveAgentResults(agentResults);
+  }
+
+  // Step: Update the check run
   await updateCheckRun(installationId, owner, repo, "success", checkRun.id, {
     title: "DevFleet",
     summary: "DevFleet completed successfully",

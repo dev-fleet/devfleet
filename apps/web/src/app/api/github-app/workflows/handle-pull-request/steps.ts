@@ -1,7 +1,13 @@
 import { env } from "@/env.mjs";
 import { App } from "octokit";
 import { db } from "@/db";
-import { agents, repoAgents, repositories } from "@/db/schema";
+import {
+  agents,
+  repoAgents,
+  repositories,
+  pullRequests,
+  prCheckRuns,
+} from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { Buffer } from "buffer";
 import { createAgentSandbox } from "@/utils/agent/sandbox";
@@ -52,28 +58,30 @@ export interface ClaudeResult {
 
 /**
  * Parses Claude CLI stdout output and extracts the result object.
- * The stdout contains newline-separated JSON objects, and we need
- * to find the one with type "result".
+ * The stdout contains a JSON array of message objects printed on a single line,
+ * and we need to find the element with type "result".
  *
  * @param stdout - The raw stdout string from Claude CLI
  * @returns The parsed ClaudeResult object, or null if not found
  */
 export function parseClaudeResult(stdout: string): ClaudeResult | null {
-  const lines = stdout.split("\n").filter((line) => line.trim());
+  try {
+    const parsed = JSON.parse(stdout.trim());
 
-  for (const line of lines) {
-    try {
-      const parsed = JSON.parse(line);
-      if (parsed.type === "result") {
-        return parsed as ClaudeResult;
-      }
-    } catch {
-      // Skip lines that aren't valid JSON
-      continue;
+    if (!Array.isArray(parsed)) {
+      return null;
     }
-  }
 
-  return null;
+    for (const item of parsed) {
+      if (item && typeof item === "object" && item.type === "result") {
+        return item as ClaudeResult;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 const app = new App({
@@ -262,11 +270,11 @@ export async function runAgent(
     const parsedResult = parseClaudeResult(claudeResult.stdout);
 
     if (!parsedResult) {
-      throw new Error("Failed to parse Claude result from stdout");
+      throw new FatalError("Failed to parse Claude result from stdout");
     }
 
     if (parsedResult.is_error) {
-      throw new Error(`Claude execution failed: ${parsedResult.result}`);
+      throw new FatalError(`Claude execution failed: ${parsedResult.result}`);
     }
 
     console.log("Claude result parsed successfully");
@@ -326,4 +334,41 @@ export async function runAgent(
   } finally {
     await sandbox.kill();
   }
+}
+
+export type AgentRunResult = {
+  repoId: string;
+  agentId: string;
+  prId: string;
+  result: ClaudeResult | null;
+  error?: string;
+};
+
+export async function saveAgentResults(results: AgentRunResult[]) {
+  "use step";
+
+  const records = results.map((r) => {
+    const isSuccess = r.result && !r.result.is_error;
+    return {
+      repoId: r.repoId,
+      prId: r.prId,
+      agentId: r.agentId,
+      status: isSuccess ? ("pass" as const) : ("error" as const),
+      message: r.result?.result ?? r.error ?? "Unknown error",
+      runtimeMs: r.result?.duration_ms ?? 0,
+      costUsd: r.result?.total_cost_usd?.toString(),
+      tokensIn: r.result?.usage?.input_tokens,
+      tokensOut: r.result?.usage?.output_tokens,
+      cacheHit:
+        (r.result?.usage?.cache_read_input_tokens ?? 0) > 0 ? true : false,
+      rawOutput: r.result as Record<string, unknown> | null,
+      errorType: r.result?.is_error
+        ? "agent_error"
+        : r.error
+          ? "execution_error"
+          : null,
+    };
+  });
+
+  await db.insert(prCheckRuns).values(records);
 }
