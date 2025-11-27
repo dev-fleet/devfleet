@@ -52,7 +52,8 @@ export async function handlePullRequest(
             repoId: settled.value.repoId,
             agentId: settled.value.agentId,
             prId: pullRequestId,
-            result: settled.value.result,
+            result: settled.value.result.parsedResult,
+            stdout: settled.value.result.stdout,
           };
         } else {
           return {
@@ -60,6 +61,7 @@ export async function handlePullRequest(
             agentId: agent.agentId,
             prId: pullRequestId,
             result: null,
+            stdout: "",
             error:
               settled.reason instanceof Error
                 ? settled.reason.message

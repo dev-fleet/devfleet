@@ -160,7 +160,7 @@ const handler = async (request: NextRequest) => {
       const prPayload = payload as PullRequestOpenedOrSynchronizePayload;
 
       // ALWAYS store PR data first
-      const { pullRequestId } = await storePullRequestFromWebhook(prPayload);
+      const pullRequestId = await storePullRequestFromWebhook(prPayload);
 
       // Only start workflow if there are active agents
       const hasActiveAgents = await hasActiveAgentsForRepository(

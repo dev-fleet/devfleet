@@ -413,17 +413,13 @@ export const prCheckRuns = pgTable(
     agentId: text("agent_id")
       .notNull()
       .references(() => agents.id, { onDelete: "cascade" }),
-
     status: text("status", { enum: PR_CHECK_RUN_STATUSES }).notNull(),
-    message: text("message").notNull(),
-    patch: text("patch"),
+    agentStdout: text("agent_stdout").notNull(),
     runtimeMs: integer("runtime_ms").notNull(),
     costUsd: numeric("cost_usd", { precision: 10, scale: 4 }),
     tokensIn: integer("tokens_in"),
     tokensOut: integer("tokens_out"),
-    cacheHit: boolean("cache_hit").default(false),
     rawOutput: jsonb("raw_output"),
-    errorType: text("error_type"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [

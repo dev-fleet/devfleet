@@ -282,7 +282,7 @@ export async function runAgent(
     console.log("Duration:", parsedResult.duration_ms, "ms");
     console.log("Structured output:", parsedResult.structured_output);
 
-    return parsedResult;
+    return { parsedResult, stdout: claudeResult.stdout };
   } catch (error) {
     if (error instanceof CommandExitError) {
       console.error("Command failed with exit code:", error.exitCode);
