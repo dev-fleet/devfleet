@@ -7,6 +7,8 @@ import {
   repositories,
   pullRequests,
   prCheckRuns,
+  agentRules,
+  rules,
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { Buffer } from "buffer";
@@ -189,14 +191,12 @@ export async function fetchPullRequestFiles(
   return response.data;
 }
 
-// Improvement:
-// - Get a diff using something like `git diff origin/main...HEAD`
 export async function runAgent(
   installationId: number,
   repoId: string,
   headSha: string,
   _repoAgentId: string,
-  _agentId: string
+  agentId: string
 ) {
   "use step";
 
@@ -256,7 +256,18 @@ export async function runAgent(
       background: false,
     });
 
-    const agentPrompts = `TODO: Agent prompts`;
+    // Fetch all enabled rules for this agent and concatenate their descriptions
+    const enabledRules = await db
+      .select({
+        description: rules.description,
+      })
+      .from(agentRules)
+      .innerJoin(rules, eq(agentRules.ruleId, rules.id))
+      .where(
+        and(eq(agentRules.agentId, agentId), eq(agentRules.enabled, true))
+      );
+
+    const agentPrompts = enabledRules.map((r) => r.description).join("\n\n");
     const jsonSchema = `{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","properties":{"file":{"type":"string"},"line":{"type":"integer","minimum":1},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH","CRITICAL"]},"category":{"type":"string"},"description":{"type":"string"},"exploit_scenario":{"type":"string"},"recommendation":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1}},"required":["file","line","severity","category","description","exploit_scenario","recommendation","confidence"],"additionalProperties":false}},"analysis_summary":{"type":"object","properties":{"files_reviewed":{"type":"integer","minimum":0},"high_severity":{"type":"integer","minimum":0},"medium_severity":{"type":"integer","minimum":0},"low_severity":{"type":"integer","minimum":0},"review_completed":{"type":"boolean"}},"required":["files_reviewed","high_severity","medium_severity","low_severity","review_completed"],"additionalProperties":false}}}`;
 
     const claudeResult = await sandbox.runCommand(
@@ -341,6 +352,7 @@ export type AgentRunResult = {
   agentId: string;
   prId: string;
   result: ClaudeResult | null;
+  stdout: string;
   error?: string;
 };
 
@@ -354,19 +366,12 @@ export async function saveAgentResults(results: AgentRunResult[]) {
       prId: r.prId,
       agentId: r.agentId,
       status: isSuccess ? ("pass" as const) : ("error" as const),
-      message: r.result?.result ?? r.error ?? "Unknown error",
+      agentStdout: r.stdout,
       runtimeMs: r.result?.duration_ms ?? 0,
       costUsd: r.result?.total_cost_usd?.toString(),
       tokensIn: r.result?.usage?.input_tokens,
       tokensOut: r.result?.usage?.output_tokens,
-      cacheHit:
-        (r.result?.usage?.cache_read_input_tokens ?? 0) > 0 ? true : false,
       rawOutput: r.result as Record<string, unknown> | null,
-      errorType: r.result?.is_error
-        ? "agent_error"
-        : r.error
-          ? "execution_error"
-          : null,
     };
   });
 
