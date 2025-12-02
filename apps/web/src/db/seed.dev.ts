@@ -19,9 +19,9 @@ export async function seedAgentTemplates() {
 1. Clear description of the issue
 2. Line number(s) where it occurs
 3. Suggested fix or best practice
-4. Severity level
+4. Severity level (critical, high, medium, low)
 
-Focus only on the enabled rules and provide actionable feedback.`,
+Focus only on the rules listed below and provide actionable feedback.`,
     category: "language",
     icon: "typescript",
     isSystemTemplate: true,
@@ -31,7 +31,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
   const tsRules = [
     {
       name: "No Implicit Any",
-      description:
+      instructions:
         "Check for implicit 'any' types. All variables, parameters, and return types should have explicit types.",
       severity: "high" as const,
       category: "type-safety",
@@ -40,7 +40,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Proper Error Handling",
-      description:
+      instructions:
         "Ensure try-catch blocks are used appropriately and errors are properly typed and handled.",
       severity: "high" as const,
       category: "error-handling",
@@ -49,7 +49,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Unused Imports",
-      description:
+      instructions:
         "Identify and flag unused imports that should be removed for cleaner code.",
       severity: "low" as const,
       category: "code-quality",
@@ -58,7 +58,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Unused Variables",
-      description:
+      instructions:
         "Check for declared variables that are never used in the code.",
       severity: "medium" as const,
       category: "code-quality",
@@ -67,7 +67,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Type Assertions Review",
-      description:
+      instructions:
         "Review 'as' type assertions and 'any' casts for potential type safety issues.",
       severity: "medium" as const,
       category: "type-safety",
@@ -76,7 +76,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Promise Handling",
-      description:
+      instructions:
         "Ensure Promises are properly awaited or handled with .then/.catch.",
       severity: "high" as const,
       category: "async",
@@ -85,7 +85,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Null/Undefined Checks",
-      description:
+      instructions:
         "Verify proper null and undefined checks before accessing properties or calling methods.",
       severity: "high" as const,
       category: "type-safety",
@@ -94,7 +94,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Array Method Returns",
-      description:
+      instructions:
         "Check if array methods like map, filter, reduce have proper return statements.",
       severity: "medium" as const,
       category: "code-quality",
@@ -103,7 +103,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Function Return Types",
-      description:
+      instructions:
         "Ensure all functions have explicit return types for better type safety.",
       severity: "medium" as const,
       category: "type-safety",
@@ -112,7 +112,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Strict Equality",
-      description:
+      instructions:
         "Prefer === and !== over == and != for type-safe comparisons.",
       severity: "medium" as const,
       category: "best-practices",
@@ -121,7 +121,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Const vs Let",
-      description:
+      instructions:
         "Use const for variables that are not reassigned, prefer const over let.",
       severity: "low" as const,
       category: "best-practices",
@@ -130,7 +130,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Optional Chaining",
-      description:
+      instructions:
         "Suggest using optional chaining (?.) where appropriate for safer property access.",
       severity: "low" as const,
       category: "best-practices",
@@ -139,7 +139,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Nullish Coalescing",
-      description:
+      instructions:
         "Recommend nullish coalescing (??) over logical OR (||) for default values.",
       severity: "low" as const,
       category: "best-practices",
@@ -148,7 +148,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Type Guards",
-      description:
+      instructions:
         "Check for proper type narrowing and type guard usage in conditional blocks.",
       severity: "medium" as const,
       category: "type-safety",
@@ -157,7 +157,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
     },
     {
       name: "Enum Usage",
-      description:
+      instructions:
         "Review enum usage and suggest const enums or union types where appropriate.",
       severity: "low" as const,
       category: "best-practices",
@@ -190,7 +190,7 @@ Focus only on the enabled rules and provide actionable feedback.`,
 4. Recommended fix or mitigation
 5. Severity level (critical, high, medium, low)
 
-Focus on real security issues, not theoretical ones. Be specific and actionable.`,
+Focus on the rules listed below and provide actionable feedback.`,
     category: "security",
     icon: "shield",
     isSystemTemplate: true,
@@ -200,7 +200,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
   const secRules = [
     {
       name: "Hardcoded Secrets",
-      description:
+      instructions:
         "Detect hardcoded API keys, passwords, tokens, or other sensitive credentials in the code.",
       severity: "critical" as const,
       category: "secrets",
@@ -209,7 +209,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "SQL Injection",
-      description:
+      instructions:
         "Check for SQL injection vulnerabilities in database queries (string concatenation, unsafe interpolation).",
       severity: "critical" as const,
       category: "injection",
@@ -218,7 +218,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "XSS Vulnerabilities",
-      description:
+      instructions:
         "Identify potential Cross-Site Scripting (XSS) vulnerabilities in user input handling and rendering.",
       severity: "high" as const,
       category: "injection",
@@ -227,7 +227,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Command Injection",
-      description:
+      instructions:
         "Detect unsafe command execution with user input (exec, eval, system calls).",
       severity: "critical" as const,
       category: "injection",
@@ -236,7 +236,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Path Traversal",
-      description:
+      instructions:
         "Check for path traversal vulnerabilities in file operations.",
       severity: "high" as const,
       category: "file-system",
@@ -245,7 +245,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Insecure Dependencies",
-      description:
+      instructions:
         "Flag usage of known vulnerable npm packages or outdated dependencies.",
       severity: "high" as const,
       category: "dependencies",
@@ -254,7 +254,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Weak Cryptography",
-      description:
+      instructions:
         "Identify weak or deprecated cryptographic algorithms (MD5, SHA1, weak keys).",
       severity: "high" as const,
       category: "cryptography",
@@ -263,7 +263,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Authentication Issues",
-      description:
+      instructions:
         "Check for authentication bypass, weak password policies, or insecure session management.",
       severity: "critical" as const,
       category: "authentication",
@@ -272,7 +272,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Authorization Checks",
-      description:
+      instructions:
         "Ensure proper authorization checks are in place for sensitive operations.",
       severity: "critical" as const,
       category: "authorization",
@@ -281,7 +281,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Unsafe Regex",
-      description:
+      instructions:
         "Detect regular expressions vulnerable to ReDoS (Regular Expression Denial of Service).",
       severity: "medium" as const,
       category: "regex",
@@ -290,7 +290,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "CORS Misconfiguration",
-      description:
+      instructions:
         "Check for overly permissive CORS configurations that could expose the API.",
       severity: "medium" as const,
       category: "configuration",
@@ -299,7 +299,7 @@ Focus on real security issues, not theoretical ones. Be specific and actionable.
     },
     {
       name: "Sensitive Data Exposure",
-      description:
+      instructions:
         "Identify logging or error messages that might expose sensitive information.",
       severity: "medium" as const,
       category: "data-exposure",

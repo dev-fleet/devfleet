@@ -6,7 +6,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Loader2 } from "lucide-react";
 import {
   AgentRulesManager,
-  type AgentRule,
+  type AgentRuleView,
 } from "@/components/agent-rules-manager";
 
 interface StepTwoProps {
@@ -34,13 +34,13 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
     }
   }, [template]);
 
-  // Transform template rules to AgentRule format
-  const transformedRules = useMemo<AgentRule[]>(() => {
+  // Transform template rules to AgentRuleView format
+  const transformedRules = useMemo<AgentRuleView[]>(() => {
     if (!template?.rules) return [];
     return template.rules.map((rule) => ({
       id: rule.id,
       name: rule.name,
-      description: rule.description,
+      instructions: rule.instructions,
       severity: rule.severity,
       category: rule.category,
       order: rule.order,

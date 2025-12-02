@@ -13,19 +13,22 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { ChevronRight, Circle } from "lucide-react";
+import type { Rule, RuleSeverity } from "@/db/schema";
 
-export type AgentRule = {
-  id: string;
-  name: string;
-  description: string;
-  severity: string;
-  category: string | null;
-  order: number;
+// View type combining Rule data with enabled state from agentRules join table
+export type AgentRuleView = Omit<
+  Rule,
+  | "defaultEnabled"
+  | "ownerGhOrganizationId"
+  | "updatedAt"
+  | "createdAt"
+  | "agentTemplateId"
+> & {
   enabled: boolean;
 };
 
 type AgentRulesManagerProps = {
-  rules: AgentRule[];
+  rules: AgentRuleView[];
   onToggleRule: (ruleId: string) => void;
   onBulkUpdate?: (updates: { ruleId: string; enabled: boolean }[]) => void;
   loading?: boolean;
@@ -75,7 +78,7 @@ export function AgentRulesManager({
       const matchesSearch =
         searchQuery === "" ||
         rule.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        rule.description.toLowerCase().includes(searchQuery.toLowerCase());
+        rule.instructions.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesSeverity =
         severityFilter === "all" || rule.severity === severityFilter;
@@ -89,7 +92,7 @@ export function AgentRulesManager({
 
   // Group filtered rules by category
   const rulesByCategory = useMemo(() => {
-    const grouped = new Map<string, AgentRule[]>();
+    const grouped = new Map<string, AgentRuleView[]>();
     filteredRules.forEach((rule) => {
       const cat = rule.category || "Uncategorized";
       if (!grouped.has(cat)) {
@@ -275,7 +278,7 @@ export function AgentRulesManager({
                     {isExpanded && (
                       <div className="px-4 py-3 bg-muted/30 border-t">
                         <p className="text-sm text-muted-foreground pl-10">
-                          {rule.description}
+                          {rule.instructions}
                         </p>
                       </div>
                     )}

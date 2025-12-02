@@ -291,7 +291,7 @@ export const rules = pgTable(
       .notNull()
       .references(() => agentTemplates.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    description: text("description").notNull(),
+    instructions: text("instructions").notNull(),
     severity: text("severity", { enum: RULE_SEVERITIES })
       .notNull()
       .default("medium"),
@@ -598,8 +598,6 @@ export type Rule = typeof rules.$inferSelect;
 export type NewRule = typeof rules.$inferInsert;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
-export type AgentRule = typeof agentRules.$inferSelect;
-export type NewAgentRule = typeof agentRules.$inferInsert;
 export type RepoAgent = typeof repoAgents.$inferSelect;
 export type NewRepoAgent = typeof repoAgents.$inferInsert;
 export type PrCheckRun = typeof prCheckRuns.$inferSelect;
