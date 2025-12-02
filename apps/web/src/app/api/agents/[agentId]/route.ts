@@ -73,7 +73,7 @@ async function getAgentDetail(userId: string, agentId: string) {
     .select({
       id: rules.id,
       name: rules.name,
-      description: rules.description,
+      instructions: rules.instructions,
       severity: rules.severity,
       category: rules.category,
       order: rules.order,
@@ -91,7 +91,7 @@ async function getAgentDetail(userId: string, agentId: string) {
   const agentRulesData = rulesRaw.map((r) => ({
     id: r.id,
     name: r.name,
-    description: r.description,
+    instructions: r.instructions,
     severity: r.severity,
     category: r.category,
     order: r.order,
@@ -118,7 +118,6 @@ async function getAgentDetail(userId: string, agentId: string) {
   const recentRunsRaw = await db
     .select({
       status: prCheckRuns.status,
-      message: prCheckRuns.message,
       runtimeMs: prCheckRuns.runtimeMs,
       repoId: prCheckRuns.repoId,
       prId: prCheckRuns.prId,

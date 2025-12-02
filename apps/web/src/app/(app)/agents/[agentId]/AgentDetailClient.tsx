@@ -216,8 +216,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
                 <TableRow>
                   <TableHead>Status</TableHead>
                   <TableHead>Repo / PR</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead className="text-right">Runtime</TableHead>
+                  <TableHead>Runtime</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -237,14 +236,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
                       <TableCell>
                         {run.repoName} / #{run.prNumber}
                       </TableCell>
-                      <TableCell>
-                        <span className="line-clamp-1 text-muted-foreground text-sm">
-                          {run.message}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {run.runtimeMs} ms
-                      </TableCell>
+                      <TableCell>{run.runtimeMs} ms</TableCell>
                     </TableRow>
                   ))
                 )}
