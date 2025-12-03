@@ -4,6 +4,7 @@ import {
   updateCheckRun,
   runAgent,
   saveAgentResults,
+  postPRReviewComments,
   type AgentRunResult,
 } from "./steps";
 
@@ -72,6 +73,16 @@ export async function handlePullRequest(
     );
 
     await saveAgentResults(agentResults);
+
+    // Step: Parse the agent results and post comments if there are any findings
+    await postPRReviewComments(
+      installationId,
+      owner,
+      repo,
+      payload.pull_request.number,
+      headSha,
+      agentResults
+    );
   }
 
   // Step: Update the check run

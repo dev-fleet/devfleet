@@ -391,3 +391,164 @@ export async function saveAgentResults(results: AgentRunResult[]) {
 
   await db.insert(prCheckRuns).values(records);
 }
+
+// Types for agent structured output
+export type FindingSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface Finding {
+  file: string;
+  line: number;
+  severity: FindingSeverity;
+  description: string;
+  recommendation: string;
+  confidence: number;
+}
+
+export interface AnalysisSummary {
+  files_reviewed: number;
+  critical_severity: number;
+  high_severity: number;
+  medium_severity: number;
+  low_severity: number;
+  review_completed: boolean;
+}
+
+export interface AgentStructuredOutput {
+  findings: Finding[];
+  analysis_summary: AnalysisSummary;
+}
+
+function isAgentStructuredOutput(
+  value: unknown
+): value is AgentStructuredOutput {
+  if (!value || typeof value !== "object") return false;
+  const obj = value as Record<string, unknown>;
+  return Array.isArray(obj.findings);
+}
+
+function getSeverityEmoji(severity: FindingSeverity): string {
+  switch (severity) {
+    case "CRITICAL":
+      return "🚨";
+    case "HIGH":
+      return "🔴";
+    case "MEDIUM":
+      return "🟡";
+    case "LOW":
+      return "🔵";
+  }
+}
+
+function formatFindingComment(finding: Finding): string {
+  const emoji = getSeverityEmoji(finding.severity);
+  return `${emoji} **${finding.severity}** (confidence: ${Math.round(finding.confidence * 100)}%)
+
+${finding.description}
+
+**Recommendation:** ${finding.recommendation}`;
+}
+
+export async function postPRReviewComments(
+  installationId: number,
+  owner: string,
+  repo: string,
+  prNumber: number,
+  headSha: string,
+  agentResults: AgentRunResult[]
+) {
+  "use step";
+
+  // Extract all findings from agent results
+  const allFindings: Finding[] = [];
+
+  for (const result of agentResults) {
+    if (!result.result || result.result.is_error) continue;
+
+    const structuredOutput = result.result.structured_output;
+    if (!isAgentStructuredOutput(structuredOutput)) continue;
+
+    allFindings.push(...structuredOutput.findings);
+  }
+
+  // If no findings, skip posting comments
+  if (allFindings.length === 0) {
+    return { posted: false, commentCount: 0 };
+  }
+
+  const octokit = await getOctokit(installationId);
+
+  // Build review comments for each finding
+  const comments: Array<{
+    path: string;
+    line: number;
+    body: string;
+  }> = allFindings.map((finding) => ({
+    path: finding.file,
+    line: finding.line,
+    body: formatFindingComment(finding),
+  }));
+
+  // Determine review event type based on severity
+  const hasCriticalOrHigh = allFindings.some(
+    (f) => f.severity === "CRITICAL" || f.severity === "HIGH"
+  );
+  const event = hasCriticalOrHigh ? "REQUEST_CHANGES" : "COMMENT";
+
+  // Build review body summary
+  const criticalCount = allFindings.filter(
+    (f) => f.severity === "CRITICAL"
+  ).length;
+  const highCount = allFindings.filter((f) => f.severity === "HIGH").length;
+  const mediumCount = allFindings.filter((f) => f.severity === "MEDIUM").length;
+  const lowCount = allFindings.filter((f) => f.severity === "LOW").length;
+
+  const summaryParts: string[] = [];
+  if (criticalCount > 0) summaryParts.push(`🚨 ${criticalCount} critical`);
+  if (highCount > 0) summaryParts.push(`🔴 ${highCount} high`);
+  if (mediumCount > 0) summaryParts.push(`🟡 ${mediumCount} medium`);
+  if (lowCount > 0) summaryParts.push(`🔵 ${lowCount} low`);
+
+  const reviewBody = `## DevFleet Code Review
+
+Found **${allFindings.length}** issue${allFindings.length === 1 ? "" : "s"}: ${summaryParts.join(", ")}`;
+
+  try {
+    await octokit.rest.pulls.createReview({
+      owner,
+      repo,
+      pull_number: prNumber,
+      commit_id: headSha,
+      body: reviewBody,
+      event: event as "REQUEST_CHANGES" | "COMMENT",
+      comments,
+    });
+
+    return { posted: true, commentCount: allFindings.length };
+  } catch (error) {
+    // If review creation fails (e.g., line not in diff), fall back to a general comment
+    console.error("Failed to create PR review with inline comments:", error);
+
+    // Post findings as a single comment
+    const fallbackBody = `${reviewBody}
+
+${allFindings
+  .map(
+    (f) =>
+      `### ${getSeverityEmoji(f.severity)} ${f.file}:${f.line}
+
+${f.description}
+
+**Recommendation:** ${f.recommendation}`
+  )
+  .join("\n\n---\n\n")}`;
+
+    await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: prNumber,
+      body: fallbackBody,
+    });
+
+    return { posted: true, commentCount: allFindings.length, fallback: true };
+  }
+}
