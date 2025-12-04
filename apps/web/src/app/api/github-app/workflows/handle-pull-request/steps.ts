@@ -10,6 +10,7 @@ import {
   agentRules,
   rules,
   agentTemplates,
+  RuleSeverity,
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { Buffer } from "buffer";
@@ -20,6 +21,10 @@ import { CommandExitError } from "@e2b/code-interpreter";
 import { FatalError } from "workflow";
 import type { components } from "@octokit/openapi-types";
 import type Anthropic from "@anthropic-ai/sdk";
+import {
+  AgentStructuredOutputJsonSchema,
+  AgentStructuredOutput,
+} from "@/utils/types";
 
 // Types for Claude CLI output parsing
 // The CLI extends the SDK's Usage type with additional cache_creation details
@@ -285,7 +290,7 @@ export async function runAgent(
     const instructions = `<rule_list>\n${enabledRules.map((r) => `<rule_item>\n${r.instructions}\n</rule_item>`).join("\n")}\n</rule_list>`;
 
     const prompt = buildPrompt(agentPrompt, instructions);
-    const jsonSchema = `{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","properties":{"file":{"type":"string"},"line":{"type":"integer","minimum":1},"severity":{"type":"string","enum":["LOW","MEDIUM","HIGH","CRITICAL"]},"description":{"type":"string"},"recommendation":{"type":"string"},"confidence":{"type":"number","minimum":0,"maximum":1}},"required":["file","line","severity","description","recommendation","confidence"],"additionalProperties":false}},"analysis_summary":{"type":"object","properties":{"files_reviewed":{"type":"integer","minimum":0},"critical_severity":{"type":"integer","minimum":0},"high_severity":{"type":"integer","minimum":0},"medium_severity":{"type":"integer","minimum":0},"low_severity":{"type":"integer","minimum":0},"review_completed":{"type":"boolean"}},"required":["files_reviewed","critical_severity","high_severity","medium_severity","low_severity","review_completed"],"additionalProperties":false}}}`;
+    const jsonSchema = JSON.stringify(AgentStructuredOutputJsonSchema);
 
     console.log("Prompt:", prompt);
 
@@ -392,32 +397,6 @@ export async function saveAgentResults(results: AgentRunResult[]) {
   await db.insert(prCheckRuns).values(records);
 }
 
-// Types for agent structured output
-export type FindingSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-
-export interface Finding {
-  file: string;
-  line: number;
-  severity: FindingSeverity;
-  description: string;
-  recommendation: string;
-  confidence: number;
-}
-
-export interface AnalysisSummary {
-  files_reviewed: number;
-  critical_severity: number;
-  high_severity: number;
-  medium_severity: number;
-  low_severity: number;
-  review_completed: boolean;
-}
-
-export interface AgentStructuredOutput {
-  findings: Finding[];
-  analysis_summary: AnalysisSummary;
-}
-
 function isAgentStructuredOutput(
   value: unknown
 ): value is AgentStructuredOutput {
@@ -426,7 +405,7 @@ function isAgentStructuredOutput(
   return Array.isArray(obj.findings);
 }
 
-function getSeverityEmoji(severity: FindingSeverity): string {
+function getSeverityEmoji(severity: RuleSeverity): string {
   switch (severity) {
     case "CRITICAL":
       return "🚨";
@@ -439,13 +418,122 @@ function getSeverityEmoji(severity: FindingSeverity): string {
   }
 }
 
-function formatFindingComment(finding: Finding): string {
+function formatInlineComment(
+  finding: AgentStructuredOutput["findings"][number]
+): string {
   const emoji = getSeverityEmoji(finding.severity);
-  return `${emoji} **${finding.severity}** (confidence: ${Math.round(finding.confidence * 100)}%)
+  const confidence = Math.round(finding.confidence * 100);
 
-${finding.description}
+  return `${emoji} **${finding.severity}** · ${confidence}% confidence
 
-**Recommendation:** ${finding.recommendation}`;
+**Issue:** ${finding.description}
+
+**Suggested Fix:** ${finding.recommendation}`;
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(1)}m`;
+}
+
+interface RunStats {
+  agentsRun: number;
+  agentsSucceeded: number;
+  agentsFailed: number;
+  totalDurationMs: number;
+  totalCostUsd: number;
+  filesReviewed: number;
+}
+
+function extractRunStats(agentResults: AgentRunResult[]): RunStats {
+  let agentsSucceeded = 0;
+  let agentsFailed = 0;
+  let totalDurationMs = 0;
+  let totalCostUsd = 0;
+  let filesReviewed = 0;
+
+  for (const result of agentResults) {
+    if (!result.result || result.result.is_error || result.error) {
+      agentsFailed++;
+    } else {
+      agentsSucceeded++;
+      totalDurationMs += result.result.duration_ms ?? 0;
+      totalCostUsd += result.result.total_cost_usd ?? 0;
+
+      const structured = result.result.structured_output;
+      if (isAgentStructuredOutput(structured)) {
+        filesReviewed += structured.analysis_summary?.files_reviewed ?? 0;
+      }
+    }
+  }
+
+  return {
+    agentsRun: agentResults.length,
+    agentsSucceeded,
+    agentsFailed,
+    totalDurationMs,
+    totalCostUsd,
+    filesReviewed,
+  };
+}
+
+function buildSummaryComment(
+  stats: RunStats,
+  findings: AgentStructuredOutput["findings"]
+): string {
+  const criticalCount = findings.filter(
+    (f) => f.severity === "CRITICAL"
+  ).length;
+  const highCount = findings.filter((f) => f.severity === "HIGH").length;
+  const mediumCount = findings.filter((f) => f.severity === "MEDIUM").length;
+  const lowCount = findings.filter((f) => f.severity === "LOW").length;
+
+  const hasIssues = findings.length > 0;
+  const hasCriticalOrHigh = criticalCount > 0 || highCount > 0;
+
+  // Header with status
+  let summary = `## 🚢 DevFleet Review\n\n`;
+
+  // Run stats table
+  summary += `| Metric | Value |\n|:--|--:|\n`;
+  summary += `| Agents | ${stats.agentsSucceeded}/${stats.agentsRun} passed |\n`;
+  summary += `| Files reviewed | ${stats.filesReviewed} |\n`;
+  summary += `| Duration | ${formatDuration(stats.totalDurationMs)} |\n`;
+
+  // Issues breakdown
+  if (hasIssues) {
+    summary += `### Issues Found\n\n`;
+    summary += `| Severity | Count |\n|:--|--:|\n`;
+    if (criticalCount > 0) summary += `| 🚨 Critical | ${criticalCount} |\n`;
+    if (highCount > 0) summary += `| 🔴 High | ${highCount} |\n`;
+    if (mediumCount > 0) summary += `| 🟡 Medium | ${mediumCount} |\n`;
+    if (lowCount > 0) summary += `| 🔵 Low | ${lowCount} |\n`;
+    summary += `\n`;
+
+    if (hasCriticalOrHigh) {
+      summary += `⚠️ **Action required:** Please review the inline comments for critical and high severity issues.\n`;
+    }
+
+    // List medium/low issues in summary (they won't get inline comments)
+    const minorFindings = findings.filter(
+      (f) => f.severity === "MEDIUM" || f.severity === "LOW"
+    );
+    if (minorFindings.length > 0) {
+      summary += `\n<details>\n<summary>📋 Medium & Low severity issues (${minorFindings.length})</summary>\n\n`;
+      for (const f of minorFindings) {
+        const emoji = getSeverityEmoji(f.severity);
+        summary += `#### ${emoji} \`${f.file}:${f.line}\`\n`;
+        summary += `${f.description}\n\n`;
+        summary += `**Suggested fix:** ${f.recommendation}\n\n---\n\n`;
+      }
+      summary += `</details>\n`;
+    }
+  } else {
+    summary += `✅ **No issues found.** Great job!\n`;
+  }
+
+  return summary;
 }
 
 export async function postPRReviewComments(
@@ -458,8 +546,11 @@ export async function postPRReviewComments(
 ) {
   "use step";
 
-  // Extract all findings from agent results
-  const allFindings: Finding[] = [];
+  const octokit = await getOctokit(installationId);
+
+  // Extract stats and findings from agent results
+  const stats = extractRunStats(agentResults);
+  const allFindings: AgentStructuredOutput["findings"] = [];
 
   for (const result of agentResults) {
     if (!result.result || result.result.is_error) continue;
@@ -470,47 +561,36 @@ export async function postPRReviewComments(
     allFindings.push(...structuredOutput.findings);
   }
 
-  // If no findings, skip posting comments
-  if (allFindings.length === 0) {
-    return { posted: false, commentCount: 0 };
-  }
+  // Build summary comment
+  const summaryBody = buildSummaryComment(stats, allFindings);
 
-  const octokit = await getOctokit(installationId);
-
-  // Build review comments for each finding
-  const comments: Array<{
-    path: string;
-    line: number;
-    body: string;
-  }> = allFindings.map((finding) => ({
-    path: finding.file,
-    line: finding.line,
-    body: formatFindingComment(finding),
-  }));
-
-  // Determine review event type based on severity
-  const hasCriticalOrHigh = allFindings.some(
+  // Filter to only important issues (CRITICAL and HIGH) for inline comments
+  const importantFindings = allFindings.filter(
     (f) => f.severity === "CRITICAL" || f.severity === "HIGH"
   );
-  const event = hasCriticalOrHigh ? "REQUEST_CHANGES" : "COMMENT";
 
-  // Build review body summary
-  const criticalCount = allFindings.filter(
-    (f) => f.severity === "CRITICAL"
-  ).length;
-  const highCount = allFindings.filter((f) => f.severity === "HIGH").length;
-  const mediumCount = allFindings.filter((f) => f.severity === "MEDIUM").length;
-  const lowCount = allFindings.filter((f) => f.severity === "LOW").length;
+  // If no important findings, just post the summary comment
+  if (importantFindings.length === 0) {
+    await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: prNumber,
+      body: summaryBody,
+    });
 
-  const summaryParts: string[] = [];
-  if (criticalCount > 0) summaryParts.push(`🚨 ${criticalCount} critical`);
-  if (highCount > 0) summaryParts.push(`🔴 ${highCount} high`);
-  if (mediumCount > 0) summaryParts.push(`🟡 ${mediumCount} medium`);
-  if (lowCount > 0) summaryParts.push(`🔵 ${lowCount} low`);
+    return { posted: true, commentCount: 0, summaryOnly: true };
+  }
 
-  const reviewBody = `## DevFleet Code Review
+  // Build inline review comments for important findings only
+  const comments = importantFindings.map((finding) => ({
+    path: finding.file,
+    line: finding.line,
+    body: formatInlineComment(finding),
+  }));
 
-Found **${allFindings.length}** issue${allFindings.length === 1 ? "" : "s"}: ${summaryParts.join(", ")}`;
+  // Determine review event type
+  const hasCritical = importantFindings.some((f) => f.severity === "CRITICAL");
+  const event = hasCritical ? "REQUEST_CHANGES" : "COMMENT";
 
   try {
     await octokit.rest.pulls.createReview({
@@ -518,29 +598,27 @@ Found **${allFindings.length}** issue${allFindings.length === 1 ? "" : "s"}: ${s
       repo,
       pull_number: prNumber,
       commit_id: headSha,
-      body: reviewBody,
+      body: summaryBody,
       event: event as "REQUEST_CHANGES" | "COMMENT",
       comments,
     });
 
-    return { posted: true, commentCount: allFindings.length };
+    return { posted: true, commentCount: importantFindings.length };
   } catch (error) {
-    // If review creation fails (e.g., line not in diff), fall back to a general comment
+    // If inline comments fail (e.g., line not in diff), post summary + fallback
     console.error("Failed to create PR review with inline comments:", error);
 
-    // Post findings as a single comment
-    const fallbackBody = `${reviewBody}
+    // Build fallback with inline issues listed
+    let fallbackBody = summaryBody;
+    fallbackBody += `\n---\n\n### ⚠️ Inline Comments Failed\n\n`;
+    fallbackBody += `The following issues could not be posted as inline comments:\n\n`;
 
-${allFindings
-  .map(
-    (f) =>
-      `### ${getSeverityEmoji(f.severity)} ${f.file}:${f.line}
-
-${f.description}
-
-**Recommendation:** ${f.recommendation}`
-  )
-  .join("\n\n---\n\n")}`;
+    for (const f of importantFindings) {
+      const emoji = getSeverityEmoji(f.severity);
+      fallbackBody += `#### ${emoji} \`${f.file}:${f.line}\`\n`;
+      fallbackBody += `${f.description}\n\n`;
+      fallbackBody += `**Suggested fix:** ${f.recommendation}\n\n---\n\n`;
+    }
 
     await octokit.rest.issues.createComment({
       owner,
@@ -549,6 +627,10 @@ ${f.description}
       body: fallbackBody,
     });
 
-    return { posted: true, commentCount: allFindings.length, fallback: true };
+    return {
+      posted: true,
+      commentCount: importantFindings.length,
+      fallback: true,
+    };
   }
 }

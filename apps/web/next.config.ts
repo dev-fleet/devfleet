@@ -1,6 +1,7 @@
 import { withWorkflow } from "workflow/next";
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   transpilePackages: ["@workspace/ui"],
   // There's a bug in turbopack that causes child dependencies to be missing
   // https://github.com/vercel/next.js/discussions/76247
@@ -11,7 +12,7 @@ const nextConfig = {
     "@aws-sdk/client-s3",
   ],
   devIndicators: {
-    position: "bottom-right",
+    position: "bottom-right" as const,
   },
   // reactStrictMode: false,
 };

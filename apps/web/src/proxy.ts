@@ -16,7 +16,7 @@ export const config = {
   ],
 };
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const path = request.nextUrl.pathname;
   const searchParams = request.nextUrl.searchParams.toString();

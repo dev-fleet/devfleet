@@ -13,6 +13,8 @@ const handler = async (request: NextRequest) => {
   const id = request.headers.get("x-github-delivery");
   const payload = await request.text();
 
+  console.log("test");
+
   if (!signature || !name || !id) {
     return new Response("Invalid signature, name, or id", { status: 400 });
   }

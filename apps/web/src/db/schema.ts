@@ -39,7 +39,7 @@ const PR_CHECK_RUN_STATUSES = [
   "skipped",
   "cancelled",
 ] as const;
-const RULE_SEVERITIES = ["low", "medium", "high", "critical"] as const;
+export const RULE_SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -294,7 +294,7 @@ export const rules = pgTable(
     instructions: text("instructions").notNull(),
     severity: text("severity", { enum: RULE_SEVERITIES })
       .notNull()
-      .default("medium"),
+      .default("MEDIUM"),
     category: text("category"),
     defaultEnabled: boolean("default_enabled").notNull().default(true),
     order: integer("order").notNull().default(0),
