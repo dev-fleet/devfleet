@@ -20,49 +20,12 @@ import { promptClaude, buildPrompt } from "./prompt";
 import { CommandExitError } from "@e2b/code-interpreter";
 import { FatalError } from "workflow";
 import type { components } from "@octokit/openapi-types";
-import type Anthropic from "@anthropic-ai/sdk";
 import {
   AgentStructuredOutputJsonSchema,
   AgentStructuredOutput,
+  ClaudeResultSchema,
+  ClaudeResult,
 } from "@/utils/types";
-
-// Types for Claude CLI output parsing
-// The CLI extends the SDK's Usage type with additional cache_creation details
-export type ClaudeResultUsage = Anthropic.Usage & {
-  cache_creation?: {
-    ephemeral_1h_input_tokens: number;
-    ephemeral_5m_input_tokens: number;
-  };
-};
-
-// CLI-specific per-model usage breakdown
-export interface ClaudeModelUsage {
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadInputTokens: number;
-  cacheCreationInputTokens: number;
-  webSearchRequests: number;
-  costUSD: number;
-  contextWindow: number;
-}
-
-// CLI-specific result type - this is not an SDK type, it's output from the Claude CLI
-export interface ClaudeResult {
-  type: "result";
-  subtype: "success" | "error";
-  is_error: boolean;
-  duration_ms: number;
-  duration_api_ms: number;
-  num_turns: number;
-  result: string;
-  session_id: string;
-  total_cost_usd: number;
-  usage: ClaudeResultUsage;
-  modelUsage: Record<string, ClaudeModelUsage>;
-  permission_denials: string[];
-  structured_output: Record<string, unknown> | null;
-  uuid: string;
-}
 
 /**
  * Parses Claude CLI stdout output and extracts the result object.
@@ -70,26 +33,27 @@ export interface ClaudeResult {
  * and we need to find the element with type "result".
  *
  * @param stdout - The raw stdout string from Claude CLI
- * @returns The parsed ClaudeResult object, or null if not found
+ * @returns The parsed ClaudeResult object
+ * @throws Error if parsing fails or no result found
  */
-export function parseClaudeResult(stdout: string): ClaudeResult | null {
-  try {
-    const parsed = JSON.parse(stdout.trim());
+export function parseClaudeResult(stdout: string): ClaudeResult {
+  const parsed = JSON.parse(stdout.trim());
 
-    if (!Array.isArray(parsed)) {
-      return null;
-    }
-
-    for (const item of parsed) {
-      if (item && typeof item === "object" && item.type === "result") {
-        return item as ClaudeResult;
-      }
-    }
-
-    return null;
-  } catch {
-    return null;
+  if (!Array.isArray(parsed)) {
+    throw new Error("Claude output is not an array");
   }
+
+  const resultItem = parsed.find(
+    (item) => item && typeof item === "object" && item.type === "result"
+  );
+
+  if (!resultItem) {
+    throw new Error("No result item found in Claude output");
+  }
+
+  console.log("Result item:", resultItem);
+
+  return ClaudeResultSchema.parse(resultItem);
 }
 
 const app = new App({
@@ -292,7 +256,8 @@ export async function runAgent(
     const prompt = buildPrompt(agentPrompt, instructions);
     const jsonSchema = JSON.stringify(AgentStructuredOutputJsonSchema);
 
-    console.log("Prompt:", prompt);
+    // console.log("Prompt:", prompt);
+    console.log("JSON Schema:", jsonSchema);
 
     const claudeResult = await sandbox.runCommand(
       `cd /devfleet && ${promptClaude(prompt, jsonSchema, "claude-sonnet-4-5-20250929")}`,
@@ -303,10 +268,6 @@ export async function runAgent(
     );
 
     const parsedResult = parseClaudeResult(claudeResult.stdout);
-
-    if (!parsedResult) {
-      throw new FatalError("Failed to parse Claude result from stdout");
-    }
 
     if (parsedResult.is_error) {
       throw new FatalError(`Claude execution failed: ${parsedResult.result}`);

@@ -21,6 +21,7 @@ export function promptClaude(
     --allowedTools "Bash(git diff:*),Bash(git status:*),Bash(git log:*),Bash(git show:*),Bash(git remote show:*),Read,Glob,Grep,LS,Task" \
     --model ${model}`;
 
+  console.log("Command:", command);
   return command;
 }
 
