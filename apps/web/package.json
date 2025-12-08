@@ -57,7 +57,7 @@
     "sonner": "^2.0.6",
     "swr": "^2.3.4",
     "usehooks-ts": "^3.1.1",
-    "workflow": "4.0.1-beta.26",
+    "workflow": "4.0.1-beta.28",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -74,11 +74,5 @@
     "import-in-the-middle": "^1.14.2",
     "require-in-the-middle": "^7.5.2",
     "typescript": "^5"
-  },
-  "pnpm": {
-    "overrides": {
-      "@types/react": "19.2.7",
-      "@types/react-dom": "19.2.3"
-    }
   }
 }
