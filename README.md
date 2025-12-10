@@ -1,73 +1,120 @@
-## How to set up locally
+# DevFleet
 
-1. `cp .env.example .env`
-1. Create a new GitHub App: https://github.com/settings/apps/new
-   1. Name: anything you like
-   1. Homepage URL: http://localhost:3001
-   1. Callback URL: http://localhost:3001/api/github-app/callback
-   1. Check "Request user authorization (OAuth) during installation"
-   1. Webhook
-      1. Enter your ngrok url: https://{your-url}.ngrok-free.app/api/github-app/webhook
-   1. Permissions (currently over permissive):
-      - Repository permissions:
-        - Contents: Read and Write
-        - Issues: Read and Write
-        - Pull requests: Read and Write
-      - Subscribe to events:
-        - Issue comment
-        - Issues
-        - Pull request
-      - Checks: Read and Write
-   1. Set in .env: `GITHUB_APP_ID=<App ID>`
-   1. Set in .env: `GITHUB_APP_CLIENT_ID=<Client ID>`
-   1. Set in .env: `GITHUB_APP_WEBHOOK_SECRET=<Webhook Secret>`
-   1. Click "Generate a client secret", copy it
-   1. Set in .env: `GITHUB_APP_CLIENT_SECRET=<client secret>`
-   1. Click "Generate a private key", download the .pem file
-   1. Set in .env: `GITHUB_APP_PRIVATE_KEY=` the output of `npx base64key ~/Downloads/key.pem | pbcopy`
-1. Create a new OAuth app: https://github.com/settings/applications/new
-   1. Name: anything you like
-   1. Homepage URL: http://localhost:3001
-   1. Authorization callback URL: http://localhost:3001/api/auth/callback/github
-   1. Set in .env: `AUTH_GITHUB_ID=<Client ID>`
-   1. Set in .env: `NEXT_PUBLIC_AUTH_GITHUB_ID=<Client ID>`
-   1. Set in .env: `AUTH_GITHUB_SECRET=<Client Secret>`
-1. Set in .env: `NEXT_PUBLIC_GITHUB_APP_INSTALL_URL=https://github.com/apps/<your oauth app name>/installations/new`
-1. Set in .env: `BETTER_AUTH_SECRET=` to `openssl rand -base64 32 | pbcopy`
-1. Set in .env: `OPENAI_API_KEY=` to a new key https://platform.openai.com/settings/organization/api-keys
-1. Set in .env: `ANTHROPIC_API_KEY=` to a new key https://console.anthropic.com/settings/keys
-1. Set in .env: `E2B_API_KEY=` to a new key https://e2b.dev/
-1. Set in .env: `ENCRYPTION_KEY=` to `openssl rand -base64 32 | pbcopy`
-1. `npm install -g pnpm`
-1. `pnpm install`
-1. `npm run db:migrate`
-1. `npm run db:docker:up`
-1. `npm run dev`
-1. `npx --yes inngest-cli@latest dev` in a separate terminal
-1. Open http://localhost:3001
+**The open-source code reviewer for AI-generated pull requests.**
 
-## E2B
+---
 
-In order to build/update e2b dockerimage, run:
-e2b template build
+## The Problem
 
-## Environment Keys
+Your team adopted Cursor, Claude Code, or Amp. Velocity went up. But so did the time you spend in code review.
 
-## Encryption Key
+AI tools are great at generating working code—but they don't know your team's patterns. They miss your naming conventions, ignore your error-handling style, and introduce subtle inconsistencies that compound over time.
 
-Generate this key using `openssl rand -base64 32`
+You're now the human guardrail catching style drift across dozens of PRs a week.
 
-## Github App Private Key
+---
 
-You need to download the pem file from the github application settings and run the following command to get the base64 encoded private key `npx base64key filename.pem | pbcopy`.
+## The Solution
 
-## Making Database Related Changes
+DevFleet is an open-source agent that reviews AI-generated pull requests and flags pattern drift with clear, actionable comments—before you even open the PR.
 
-When you make some changes on the `schema.ts`, it's important to create migrations. When working locally, you can run `npm run db:dev:push` to make sure your local database matches the table descriptions in the schema file. Once you verify the changes, you can create the SQL migrations by running `npm run db:dev:generate`. This will generate a new file under the db/migrations folder. After this file is created, you can apply the migration by running `npm run db:migrate`. We currently dont have an automated way to applying new database migrations, you need to apply them manually by running the script.
+It understands your codebase conventions and points out when AI-generated code doesn't match:
 
-## Setting Up ngrok / Working with webhooks
+- Inconsistent naming or file organization
+- Missed abstractions your team already has
+- Error handling that doesn't follow your patterns
+- Style violations that slip past linters
 
-You need a public gateway to be able to use github webhooks. [ngrok](https://ngrok.com) free tier is enough for the local dev work. Create an account and download the binary for your operating system.
+Think of it as a senior engineer who's memorized your style guide and never gets tired.
 
-Finally, run the gateway with your reserved url (eg):  
-`ngrok http 3001 --url mallard-ace-easily.ngrok-free.app`
+---
+
+## How It Works
+
+```
+1. AI agent opens a PR
+      ↓
+2. DevFleet receives the webhook
+      ↓
+3. Reviews the diff against your patterns
+      ↓
+4. Posts inline comments on style drift
+      ↓
+5. You review with context, not guesswork
+```
+
+**Example comment:**
+
+> 💡 This creates a new `fetchUserData` helper, but `src/utils/api.ts` already exports `getUserById` which handles the same case with your team's retry logic. Consider using the existing abstraction.
+
+---
+
+## Open Source & Self-Hostable
+
+DevFleet is fully open source under the AGPL license. You can run it on your own infrastructure with complete control over your data.
+
+**Self-hosting takes about 15 minutes:**
+
+→ Full self-hosting guide: [docs.devfleet.ai/self-hosting](https://docs.devfleet.ai/self-hosting)
+
+---
+
+## Early Access Cloud Offering
+
+Don't want to self-host? We're building a managed cloud version with extra capabilities:
+
+- **Pattern extraction** – We analyze your codebase and extract your team's conventions automatically
+- **Tuned review rules** – Custom rules based on your actual code, not generic best practices
+- **Priority support** – Direct line to the team building DevFleet
+
+We're working with a small group of teams during early access.
+
+**→ [Join the waitlist](https://devfleet.ai)**
+
+---
+
+## Quick Start (Local Development)
+
+1. Clone the repo and install dependencies:
+
+   ```bash
+   git clone https://github.com/dev-fleet/devfleet.git
+   cd devfleet && pnpm install
+   ```
+
+2. Set up environment variables:
+
+   ```bash
+   cp apps/web/.env.example apps/web/.env
+   ```
+
+3. Create a [GitHub App](https://github.com/settings/apps/new) with:
+   - **Permissions:** Contents, Issues, Pull requests, Checks (Read & Write)
+   - **Events:** Issue comment, Issues, Pull request
+
+4. Add your API keys to `.env`:
+   - `GITHUB_APP_*` credentials
+   - `ANTHROPIC_API_KEY`
+   - `E2B_API_KEY`
+
+5. Start the database and app:
+
+   ```bash
+   npm run db:docker:up
+   npm run db:migrate
+   npm run dev
+   ```
+
+6. Open [http://localhost:3001](http://localhost:3001)
+
+---
+
+## Contributing
+
+We welcome contributions! Whether it's bug fixes, new features, or documentation improvements.
+
+---
+
+**Built by engineers who got tired of reviewing AI drift.**
+
+Questions? [Open an issue](https://github.com/dev-fleet/devfleet/issues) or reach out on [Twitter/X](https://twitter.com/muratsutunc).
