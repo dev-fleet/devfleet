@@ -3,7 +3,11 @@ import { useMDXComponents as getMDXComponents } from "../../mdx-components";
 
 export const generateStaticParams = generateStaticParamsFor("mdxPath");
 
-export async function generateMetadata(props: any) {
+type PageProps = {
+  params: Promise<{ mdxPath?: string[] }>;
+};
+
+export async function generateMetadata(props: PageProps) {
   const { mdxPath } = await props.params;
   const { metadata } = await importPage(mdxPath);
   return {
@@ -14,8 +18,9 @@ export async function generateMetadata(props: any) {
 
 const Wrapper = getMDXComponents().wrapper;
 
-// @ts-expect-error - TODO: fix this
-export default async function Page(props) {
+export default async function Page(
+  props: PageProps
+): Promise<React.ReactElement> {
   const params = await props.params;
   const result = await importPage(params.mdxPath);
   const { default: MDXContent, toc, metadata, sourceCode } = result;
