@@ -1,0 +1,348 @@
+# Self-hosting DevFleet
+
+> An end-to-end guide on how to self-host DevFleet – the open-source AI-powered coding agent runner.
+
+{/* TODO: Add hero image here */}
+{/* ![DevFleet Logo](/devfleet-logo.png) */}
+
+You can self-host DevFleet on your own servers and cloud infrastructure for greater control over your data and workflows. This guide will walk you through the entire process of setting up DevFleet on your own servers.
+
+## Prerequisites
+
+Before you begin, make sure you have the following:
+
+- A [GitHub](https://github.com/) account
+- An [Anthropic](https://console.anthropic.com/) account
+- An [E2B](https://e2b.dev/) account
+- A [Vercel](https://vercel.com/) account
+- [Docker](https://www.docker.com/) installed (for local PostgreSQL)
+- [ngrok](https://ngrok.com/) account (for webhook development)
+
+You'll also need a custom domain for your DevFleet instance.
+
+In this guide, we'll use `app.acme.com` as a placeholder for your custom domain.
+
+## Step 1: Local Setup
+
+First, you'll need to clone the DevFleet repo and install the dependencies.
+
+### Clone the repo
+
+Clone the [DevFleet repo](https://github.com/dev-fleet/devfleet) into a public GitHub repository.
+
+```bash
+git clone https://github.com/dev-fleet/devfleet.git
+```
+
+### Install dependencies
+
+DevFleet uses pnpm as its package manager. If you don't have pnpm installed, install it first:
+
+```bash
+npm install -g pnpm
+```
+
+Then install the dependencies:
+
+```bash
+pnpm install
+```
+
+### Set up environment variables
+
+Navigate to `apps/web` and copy the example environment file:
+
+```bash
+cp apps/web/.env.example apps/web/.env
+```
+
+You'll fill in the environment variables in the following steps.
+
+## Step 2: Set up PostgreSQL Database
+
+DevFleet uses PostgreSQL as its primary database. For local development, we provide a Docker Compose configuration using the Supabase Postgres image.
+
+### Start the database
+
+Run the following command to start the PostgreSQL container:
+
+```bash
+npm run db:docker:up
+```
+
+This starts a PostgreSQL 15 instance on port `5432` with the password `postgres`.
+
+### Configure the database URL
+
+Add the following to your `.env` file:
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
+```
+
+### Run database migrations
+
+Run Drizzle migrations:
+
+```bash
+npm run db:migrate
+```
+
+For development, you can push schema changes directly:
+
+```bash
+npm run db:dev:push
+```
+
+## Step 3: Set up GitHub App
+
+DevFleet requires a GitHub App to interact with repositories, handle webhooks, and perform Git operations.
+
+### Create a new GitHub App
+
+1. Go to [GitHub App settings](https://github.com/settings/apps/new)
+2. Fill in the following details:
+   - **GitHub App name**: Choose a name (e.g., "DevFleet - Your Company")
+   - **Homepage URL**: `https://app.acme.com` (or `http://localhost:3001` for local dev)
+   - **Callback URL**: `https://app.acme.com/api/github-app/callback`
+   - **Setup URL (optional)**: Leave blank
+   - **Webhook URL**: `https://app.acme.com/api/github-app/webhook`
+   - **Webhook secret**: Generate a secure secret (e.g., `openssl rand -hex 32`)
+
+3. Check **"Request user authorization (OAuth) during installation"**
+
+### Set repository permissions
+
+Under **Repository permissions**, set:
+
+| Permission    | Access         |
+| ------------- | -------------- |
+| Contents      | Read and Write |
+| Issues        | Read and Write |
+| Pull requests | Read and Write |
+| Checks        | Read and Write |
+
+### Subscribe to events
+
+Under **Subscribe to events**, check:
+
+- Issue comment
+- Issues
+- Pull request
+
+### Generate credentials
+
+After creating the app:
+
+1. Copy the **App ID** and set it in `.env`:
+
+   ```bash
+   GITHUB_APP_ID=<App ID>
+   ```
+
+2. Copy the **Client ID** and set it in `.env`:
+
+   ```bash
+   GITHUB_APP_CLIENT_ID=<Client ID>
+   ```
+
+3. Generate a **Client secret**, copy it, and set it in `.env`:
+
+   ```bash
+   GITHUB_APP_CLIENT_SECRET=<Client Secret>
+   ```
+
+4. Set your **Webhook secret** in `.env`:
+
+   ```bash
+   GITHUB_APP_WEBHOOK_SECRET=<Webhook Secret>
+   ```
+
+5. Generate a **Private key**, download the `.pem` file, and convert it to base64:
+
+   ```bash
+   npx base64key ~/Downloads/your-app-name.pem | pbcopy
+   ```
+
+   Then set it in `.env`:
+
+   ```bash
+   GITHUB_APP_PRIVATE_KEY=<base64-encoded private key>
+   ```
+
+6. Set the install URL in `.env`:
+   ```bash
+   NEXT_PUBLIC_GITHUB_APP_INSTALL_URL=https://github.com/apps/<your-app-name>/installations/new
+   ```
+
+## Step 4: Set up GitHub OAuth
+
+DevFleet uses GitHub OAuth for user authentication (separate from the GitHub App).
+
+### Create OAuth App
+
+1. Go to [OAuth Apps settings](https://github.com/settings/applications/new)
+2. Fill in the following:
+   - **Application name**: Choose a name (e.g., "DevFleet Auth")
+   - **Homepage URL**: `https://app.acme.com`
+   - **Authorization callback URL**: `https://app.acme.com/api/auth/callback/github`
+
+3. After creating, copy the credentials and set them in `.env`:
+   ```bash
+   AUTH_GITHUB_ID=<Client ID>
+   NEXT_PUBLIC_AUTH_GITHUB_ID=<Client ID>
+   AUTH_GITHUB_SECRET=<Client Secret>
+   ```
+
+## Step 5: Set up Authentication Secret
+
+DevFleet uses Better Auth for authentication. Generate a secure secret:
+
+```bash
+openssl rand -base64 32
+```
+
+Set it in your `.env` file:
+
+```bash
+BETTER_AUTH_SECRET=<your-generated-secret>
+```
+
+## Step 6: Set up Encryption Key
+
+DevFleet encrypts sensitive data like API keys. Generate an encryption key:
+
+```bash
+openssl rand -base64 32
+```
+
+Set it in your `.env` file:
+
+```bash
+ENCRYPTION_KEY=<your-generated-key>
+```
+
+## Step 7: Set up AI Provider
+
+### Anthropic (recommended)
+
+1. Go to [Anthropic Console](https://console.anthropic.com/settings/keys)
+2. Create a new API key
+3. Set it in your `.env` file:
+   ```bash
+   ANTHROPIC_API_KEY=<your-anthropic-key>
+   ```
+
+## Step 8: Set up E2B
+
+DevFleet uses [E2B](https://e2b.dev/) to run code in isolated sandboxes.
+
+1. Sign up at [E2B](https://e2b.dev/)
+2. Get your API key from the dashboard
+3. Set it in your `.env` file:
+   ```bash
+   E2B_API_KEY=<your-e2b-key>
+   ```
+
+### Build the E2B template (optional)
+
+If you need to customize the sandbox environment:
+
+```bash
+cd apps/infra
+e2b template build
+```
+
+## Step 9: Set up Webhooks (Local Development)
+
+For local development, you need a public URL to receive GitHub webhooks.
+
+### Set up ngrok
+
+1. Sign up at [ngrok](https://ngrok.com/) and download the binary
+2. Authenticate ngrok with your token
+3. Start the tunnel:
+
+   ```bash
+   ngrok http 3001 --url your-subdomain.ngrok-free.app
+   ```
+
+4. Update your GitHub App webhook URL to use the ngrok URL:
+
+   ```
+   https://your-subdomain.ngrok-free.app/api/github-app/webhook
+   ```
+
+5. Also add the local callback URL to your GitHub OAuth app:
+   ```
+   http://localhost:3001/api/auth/callback/github
+   ```
+
+## Step 10: Run the Development Server
+
+With all environment variables configured, you can now start DevFleet:
+
+### Start the application
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3001](http://localhost:3001) to see DevFleet running.
+
+## Step 11: Deploy to Production
+
+Once you've verified everything works locally, you can deploy to production.
+
+## Environment Variables Reference
+
+Here's a complete list of all environment variables:
+
+| Variable                             | Description                           | Required |
+| ------------------------------------ | ------------------------------------- | -------- |
+| `DATABASE_URL`                       | PostgreSQL connection string          | Yes      |
+| `GITHUB_APP_ID`                      | GitHub App ID                         | Yes      |
+| `GITHUB_APP_CLIENT_ID`               | GitHub App Client ID                  | Yes      |
+| `GITHUB_APP_CLIENT_SECRET`           | GitHub App Client Secret              | Yes      |
+| `GITHUB_APP_WEBHOOK_SECRET`          | GitHub App Webhook Secret             | Yes      |
+| `GITHUB_APP_PRIVATE_KEY`             | Base64-encoded GitHub App Private Key | Yes      |
+| `AUTH_GITHUB_ID`                     | GitHub OAuth Client ID                | Yes      |
+| `NEXT_PUBLIC_AUTH_GITHUB_ID`         | GitHub OAuth Client ID (public)       | Yes      |
+| `AUTH_GITHUB_SECRET`                 | GitHub OAuth Client Secret            | Yes      |
+| `NEXT_PUBLIC_GITHUB_APP_INSTALL_URL` | GitHub App installation URL           | Yes      |
+| `BETTER_AUTH_SECRET`                 | Authentication secret                 | Yes      |
+| `ENCRYPTION_KEY`                     | Encryption key for sensitive data     | Yes      |
+| `ANTHROPIC_API_KEY`                  | Anthropic API key                     | Yes      |
+| `E2B_API_KEY`                        | E2B API key for code sandboxing       | Yes      |
+
+## Caveats
+
+This guide is meant to be a starting point for self-hosting DevFleet. The current setup depends on the following services:
+
+- [E2B](https://e2b.dev/) for sandboxed code execution
+- [Vercel](https://vercel.com/) for hosting
+- [GitHub](https://github.com/) for repository access and authentication
+
+## Troubleshooting
+
+### Webhook not receiving events
+
+1. Verify your ngrok tunnel is running (local dev)
+2. Check the webhook secret matches in GitHub and `.env`
+3. Verify the webhook URL is correct in GitHub App settings
+
+### Authentication issues
+
+1. Ensure both GitHub OAuth callback URLs are set correctly
+2. Verify `BETTER_AUTH_SECRET` is set
+3. Check that `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET` are correct
+
+### Database connection errors
+
+1. Verify PostgreSQL is running: `docker ps`
+2. Check `DATABASE_URL` format is correct
+3. Run migrations: `npm run db:migrate`
+
+---
+
+Need help? [Open an issue](https://github.com/dev-fleet/devfleet/issues) on GitHub.
