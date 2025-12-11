@@ -1,18 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useAgentDetail } from "@/utils/swr/agents";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Button } from "@workspace/ui/components/button";
-import { Badge } from "@workspace/ui/components/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select";
 import {
   Table,
   TableBody,
@@ -21,14 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import { Card } from "@workspace/ui/components/card";
 import { toast } from "sonner";
-import {
-  updateAgent,
-  toggleAgentRule,
-  bulkUpdateAgentRules,
-} from "@/actions/agents";
-import { AgentRulesManager } from "@/components/agent-rules-manager";
+import { updateAgent, updateAgentPrompt } from "@/actions/agents";
 import Link from "next/link";
 import {
   Dialog,
@@ -43,20 +29,22 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
   const { data, error, mutate } = useAgentDetail(agentId);
 
   const [name, setName] = useState("");
-  const [engine, setEngine] = useState<"anthropic" | "openai">("anthropic");
-  const [description, setDescription] = useState<string>("");
-  const [saving, setSaving] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [savingPrompt, setSavingPrompt] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [testDiff, setTestDiff] = useState("");
 
   const initialNameRef = useRef<string | null>(null);
+  const initialPromptRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!data?.agent) return;
     setName(data.agent.name);
-    setEngine(data.agent.engine as any);
-    setDescription(data.agent.description ?? "");
+    setPrompt(data.agent.prompt ?? data.agentTemplate?.basePrompt ?? "");
     initialNameRef.current = data.agent.name;
+    initialPromptRef.current =
+      data.agent.prompt ?? data.agentTemplate?.basePrompt ?? "";
   }, [data]);
 
   const saveName = useDebounce(async (newName: string) => {
@@ -64,7 +52,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     if (!trimmedName || trimmedName === initialNameRef.current) return;
 
     try {
-      setSaving(true);
+      setSavingName(true);
       await updateAgent(agentId, { name: trimmedName });
       initialNameRef.current = trimmedName;
       toast.success("Name saved");
@@ -72,38 +60,35 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     } catch {
       toast.error("Failed to save name");
     } finally {
-      setSaving(false);
+      setSavingName(false);
     }
   }, 500);
 
-  const handleToggleRule = useCallback(
-    async (ruleId: string) => {
-      try {
-        await toggleAgentRule(agentId, ruleId);
-        mutate();
-      } catch (e) {
-        toast.error("Failed to toggle rule");
-      }
-    },
-    [agentId, mutate]
-  );
+  const savePrompt = useDebounce(async (newPrompt: string) => {
+    const trimmedPrompt = newPrompt.trim();
+    if (trimmedPrompt === initialPromptRef.current) return;
 
-  const handleBulkUpdateRules = useCallback(
-    async (updates: { ruleId: string; enabled: boolean }[]) => {
-      try {
-        await bulkUpdateAgentRules(agentId, updates);
-        toast.success("Rules updated");
-        mutate();
-      } catch (e) {
-        toast.error("Failed to update rules");
-      }
-    },
-    [agentId, mutate]
-  );
+    // Don't save empty prompts - the workflow will fall back to basePrompt
+    if (!trimmedPrompt) {
+      toast.error("Prompt cannot be empty");
+      return;
+    }
+
+    try {
+      setSavingPrompt(true);
+      await updateAgentPrompt(agentId, trimmedPrompt);
+      initialPromptRef.current = trimmedPrompt;
+      toast.success("Prompt saved");
+      mutate();
+    } catch {
+      toast.error("Failed to save prompt");
+    } finally {
+      setSavingPrompt(false);
+    }
+  }, 1000);
 
   const reposUsing = useMemo(() => data?.reposUsing ?? [], [data]);
   const recentRuns = useMemo(() => data?.recentRuns ?? [], [data]);
-  const rules = useMemo(() => data?.rules ?? [], [data]);
 
   return (
     <div className="grid gap-8">
@@ -120,7 +105,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
               }}
               className="pr-9"
             />
-            {saving && (
+            {savingName && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 <Spinner className="text-muted-foreground" />
               </div>
@@ -129,19 +114,29 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
         </div>
       </div>
 
-      {/* Rules Management Section */}
-
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold">Rules</h2>
-        <p className="text-sm text-muted-foreground">
-          Enable or disable specific rules for this agent
-        </p>
+      {/* Prompt Editor Section */}
+      <div className="grid gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Prompt</h2>
+            {savingPrompt && (
+              <Spinner className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Define what this agent looks for when reviewing pull requests
+          </p>
+        </div>
+        <Textarea
+          value={prompt}
+          onChange={(e) => {
+            setPrompt(e.target.value);
+            savePrompt(e.target.value);
+          }}
+          placeholder="Enter the agent prompt..."
+          className="min-h-[400px] font-mono text-sm"
+        />
       </div>
-      <AgentRulesManager
-        rules={rules}
-        onToggleRule={handleToggleRule}
-        onBulkUpdate={handleBulkUpdateRules}
-      />
 
       <Dialog open={testOpen} onOpenChange={setTestOpen}>
         <DialogContent className="sm:max-w-2xl">
@@ -176,7 +171,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
       <div className="grid gap-6">
         <div className="grid gap-2">
           <h3 className="text-base font-semibold">Repos Using</h3>
-          <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -224,7 +219,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
 
         <div className="grid gap-2">
           <h3 className="text-base font-semibold">Recent Runs</h3>
-          <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>

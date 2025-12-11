@@ -7,8 +7,6 @@ import {
   repositories,
   pullRequests,
   prCheckRuns,
-  agentRules,
-  rules,
   agentTemplates,
   RuleSeverity,
 } from "@/db/schema";
@@ -226,17 +224,6 @@ export async function runAgent(
       background: false,
     });
 
-    // Fetch all enabled rules for this agent and concatenate their descriptions
-    const enabledRules = await db
-      .select({
-        instructions: rules.instructions,
-      })
-      .from(agentRules)
-      .innerJoin(rules, eq(agentRules.ruleId, rules.id))
-      .where(
-        and(eq(agentRules.agentId, agentId), eq(agentRules.enabled, true))
-      );
-
     // Fetch the agent's prompt, falling back to the template's basePrompt if null
     const agentWithTemplate = await db
       .select({
@@ -249,11 +236,9 @@ export async function runAgent(
       .limit(1);
 
     const agentPrompt =
-      agentWithTemplate[0]?.prompt ?? agentWithTemplate[0]?.basePrompt ?? "";
+      agentWithTemplate[0]?.prompt || agentWithTemplate[0]?.basePrompt || "";
 
-    const instructions = `<rule_list>\n${enabledRules.map((r) => `<rule_item>\n${r.instructions}\n</rule_item>`).join("\n")}\n</rule_list>`;
-
-    const prompt = buildPrompt(agentPrompt, instructions);
+    const prompt = buildPrompt(agentPrompt);
     const jsonSchema = JSON.stringify(AgentStructuredOutputJsonSchema);
 
     // console.log("Prompt:", prompt);

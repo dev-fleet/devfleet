@@ -5,8 +5,6 @@ import { db } from "@/db";
 import {
   agents,
   agentTemplates,
-  rules,
-  agentRules,
   prCheckRuns,
   pullRequests,
   repoAgents,
@@ -67,36 +65,6 @@ async function getAgentDetail(userId: string, agentId: string) {
     .from(agentTemplates)
     .where(eq(agentTemplates.id, theAgent[0].agentTemplateId))
     .limit(1);
-
-  // Get all rules for this agent template with their enabled status
-  const rulesRaw = await db
-    .select({
-      id: rules.id,
-      name: rules.name,
-      instructions: rules.instructions,
-      severity: rules.severity,
-      category: rules.category,
-      order: rules.order,
-      agentRuleId: agentRules.id,
-      enabled: agentRules.enabled,
-    })
-    .from(rules)
-    .leftJoin(
-      agentRules,
-      and(eq(agentRules.ruleId, rules.id), eq(agentRules.agentId, agentId))
-    )
-    .where(eq(rules.agentTemplateId, theAgent[0].agentTemplateId))
-    .orderBy(rules.order);
-
-  const agentRulesData = rulesRaw.map((r) => ({
-    id: r.id,
-    name: r.name,
-    instructions: r.instructions,
-    severity: r.severity,
-    category: r.category,
-    order: r.order,
-    enabled: r.enabled ?? false,
-  }));
 
   // Repos using this agent
   const reposUsing = await db
@@ -159,7 +127,6 @@ async function getAgentDetail(userId: string, agentId: string) {
   return {
     agent: theAgent[0],
     agentTemplate: agentTemplate[0] ?? null,
-    rules: agentRulesData,
     reposUsing: reposUsingWithLastRun,
     recentRuns: recentRunsRaw,
   } as const;

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { getSession } from "@/utils/auth";
 import { db } from "@/db";
-import { agents, users, rules, agentRules, agentTemplates } from "@/db/schema";
+import { agents, users, agentTemplates, repoAgents } from "@/db/schema";
 
 type Engine = "anthropic" | "openai";
 
@@ -28,12 +28,13 @@ export async function createAgent(input: {
   agentTemplateId: string;
   engine: Engine;
   description?: string | null;
+  prompt?: string | null;
 }) {
   const orgId = await getDefaultOrgId();
 
-  // Verify agent template exists
+  // Verify agent template exists and get basePrompt
   const agentTemplate = await db
-    .select({ id: agentTemplates.id })
+    .select({ id: agentTemplates.id, basePrompt: agentTemplates.basePrompt })
     .from(agentTemplates)
     .where(eq(agentTemplates.id, input.agentTemplateId))
     .limit(1);
@@ -42,13 +43,13 @@ export async function createAgent(input: {
     throw new Error("Agent template not found");
   }
 
-  // Create the agent
+  // Create the agent with prompt (either provided or from template)
   const createdAgents = await db
     .insert(agents)
     .values({
       name: input.name,
       agentTemplateId: input.agentTemplateId,
-      prompt: null, // Use base prompt from agent template
+      prompt: input.prompt ?? agentTemplate[0].basePrompt,
       engine: input.engine,
       description: input.description ?? null,
       ownerGhOrganizationId: orgId,
@@ -57,25 +58,6 @@ export async function createAgent(input: {
 
   const created = createdAgents[0];
   if (!created) throw new Error("Failed to create agent");
-
-  // Create default agent rules based on agent template rules
-  const defaultRules = await db
-    .select({
-      id: rules.id,
-      defaultEnabled: rules.defaultEnabled,
-    })
-    .from(rules)
-    .where(eq(rules.agentTemplateId, input.agentTemplateId));
-
-  if (defaultRules.length > 0) {
-    await db.insert(agentRules).values(
-      defaultRules.map((rule) => ({
-        agentId: created.id,
-        ruleId: rule.id,
-        enabled: rule.defaultEnabled,
-      }))
-    );
-  }
 
   revalidatePath("/dashboard/agents");
   return { id: created.id };
@@ -87,6 +69,7 @@ export async function updateAgent(
     name: string;
     engine: Engine;
     description: string | null;
+    prompt: string | null;
   }>
 ) {
   const orgId = await getDefaultOrgId();
@@ -105,6 +88,7 @@ export async function updateAgent(
       name: input.name,
       engine: input.engine,
       description: input.description,
+      prompt: input.prompt,
     })
     .where(
       and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId))
@@ -147,25 +131,6 @@ export async function duplicateAgent(agentId: string) {
   const created = createdAgents[0];
   if (!created) throw new Error("Failed to duplicate agent");
 
-  // Copy rule configurations from source agent
-  const sourceRules = await db
-    .select({
-      ruleId: agentRules.ruleId,
-      enabled: agentRules.enabled,
-    })
-    .from(agentRules)
-    .where(eq(agentRules.agentId, agentId));
-
-  if (sourceRules.length > 0) {
-    await db.insert(agentRules).values(
-      sourceRules.map((rule) => ({
-        agentId: created.id,
-        ruleId: rule.ruleId,
-        enabled: rule.enabled,
-      }))
-    );
-  }
-
   revalidatePath("/dashboard/agents");
   return { id: created.id } as const;
 }
@@ -184,7 +149,7 @@ export async function archiveAgent(agentId: string) {
   return { success: true } as const;
 }
 
-export async function toggleAgentRule(agentId: string, ruleId: string) {
+export async function updateAgentPrompt(agentId: string, prompt: string) {
   const orgId = await getDefaultOrgId();
 
   // Verify agent belongs to org
@@ -196,53 +161,15 @@ export async function toggleAgentRule(agentId: string, ruleId: string) {
 
   if (!agent[0]) throw new Error("Agent not found");
 
-  // Get current rule state
-  const currentRule = await db
-    .select({ enabled: agentRules.enabled })
-    .from(agentRules)
-    .where(and(eq(agentRules.agentId, agentId), eq(agentRules.ruleId, ruleId)))
-    .limit(1);
-
-  if (!currentRule[0]) throw new Error("Rule configuration not found");
-
-  // Toggle the enabled state
   await db
-    .update(agentRules)
-    .set({ enabled: !currentRule[0].enabled })
-    .where(and(eq(agentRules.agentId, agentId), eq(agentRules.ruleId, ruleId)));
+    .update(agents)
+    .set({ prompt })
+    .where(
+      and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId))
+    );
 
   revalidatePath(`/dashboard/agents/${agentId}`);
-  return { success: true, enabled: !currentRule[0].enabled } as const;
-}
-
-export async function bulkUpdateAgentRules(
-  agentId: string,
-  updates: { ruleId: string; enabled: boolean }[]
-) {
-  const orgId = await getDefaultOrgId();
-
-  // Verify agent belongs to org
-  const agent = await db
-    .select({ id: agents.id })
-    .from(agents)
-    .where(and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId)))
-    .limit(1);
-
-  if (!agent[0]) throw new Error("Agent not found");
-
-  // Update all rules
-  await Promise.all(
-    updates.map(({ ruleId, enabled }) =>
-      db
-        .update(agentRules)
-        .set({ enabled })
-        .where(
-          and(eq(agentRules.agentId, agentId), eq(agentRules.ruleId, ruleId))
-        )
-    )
-  );
-
-  revalidatePath(`/dashboard/agents/${agentId}`);
+  revalidatePath(`/agents/${agentId}`);
   return { success: true } as const;
 }
 
@@ -251,7 +178,7 @@ export async function createAgentWithConfiguration(input: {
   name: string;
   engine: Engine;
   description?: string | null;
-  rules: { ruleId: string; enabled: boolean }[];
+  prompt: string;
   repositoryIds: string[];
 }) {
   try {
@@ -268,13 +195,13 @@ export async function createAgentWithConfiguration(input: {
       return { success: false, error: "Agent template not found" };
     }
 
-    // Create the agent
+    // Create the agent with the provided prompt
     const createdAgents = await db
       .insert(agents)
       .values({
         name: input.name,
         agentTemplateId: input.agentTemplateId,
-        prompt: null, // Use base prompt from agent template
+        prompt: input.prompt,
         engine: input.engine,
         description: input.description ?? null,
         ownerGhOrganizationId: orgId,
@@ -286,27 +213,14 @@ export async function createAgentWithConfiguration(input: {
       return { success: false, error: "Failed to create agent" };
     }
 
-    // Create agent rules with custom configurations
-    if (input.rules.length > 0) {
-      await db.insert(agentRules).values(
-        input.rules.map((rule) => ({
-          agentId: created.id,
-          ruleId: rule.ruleId,
-          enabled: rule.enabled,
-        }))
-      );
-    }
-
     // Associate agent with repositories
     if (input.repositoryIds.length > 0) {
-      const { repoAgents } = await import("@/db/schema");
       await db.insert(repoAgents).values(
-        input.repositoryIds.map((repoId, index) => ({
+        input.repositoryIds.map((repoId) => ({
           ownerGhOrganizationId: orgId,
           repoId,
           agentId: created.id,
           enabled: true,
-          order: index,
         }))
       );
     }

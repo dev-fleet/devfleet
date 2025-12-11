@@ -1,83 +1,35 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAgentTemplates } from "@/hooks/useAgentTemplates";
 import { Button } from "@workspace/ui/components/button";
+import { Textarea } from "@workspace/ui/components/textarea";
 import { Loader2 } from "lucide-react";
-import {
-  AgentRulesManager,
-  type AgentRuleView,
-} from "@/components/agent-rules-manager";
 
 interface StepTwoProps {
   agentTemplateId: string;
-  onComplete: (rules: { ruleId: string; enabled: boolean }[]) => void;
+  onComplete: (prompt: string) => void;
   onBack: () => void;
 }
 
 export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
   const { data, isLoading } = useAgentTemplates();
-  const [ruleStates, setRuleStates] = useState<Record<string, boolean>>({});
+  const [prompt, setPrompt] = useState("");
 
   const template = useMemo(() => {
     return data?.agentTemplates?.find((t) => t.id === agentTemplateId);
   }, [data, agentTemplateId]);
 
-  // Initialize rule states with defaults
+  // Initialize prompt with template's basePrompt
   useEffect(() => {
-    if (template?.rules) {
-      const initialStates: Record<string, boolean> = {};
-      template.rules.forEach((rule) => {
-        initialStates[rule.id] = rule.defaultEnabled;
-      });
-      setRuleStates(initialStates);
+    if (template?.basePrompt) {
+      setPrompt(template.basePrompt);
     }
   }, [template]);
 
-  // Transform template rules to AgentRuleView format
-  const transformedRules = useMemo<AgentRuleView[]>(() => {
-    if (!template?.rules) return [];
-    return template.rules.map((rule) => ({
-      id: rule.id,
-      name: rule.name,
-      instructions: rule.instructions,
-      severity: rule.severity,
-      category: rule.category,
-      order: rule.order,
-      enabled: ruleStates[rule.id] || false,
-    }));
-  }, [template, ruleStates]);
-
-  const handleToggle = useCallback((ruleId: string) => {
-    setRuleStates((prev) => ({
-      ...prev,
-      [ruleId]: !prev[ruleId],
-    }));
-  }, []);
-
-  const handleBulkUpdate = useCallback(
-    (updates: { ruleId: string; enabled: boolean }[]) => {
-      setRuleStates((prev) => {
-        const newStates = { ...prev };
-        updates.forEach(({ ruleId, enabled }) => {
-          newStates[ruleId] = enabled;
-        });
-        return newStates;
-      });
-    },
-    []
-  );
-
   const handleContinue = () => {
-    const rules = Object.entries(ruleStates).map(([ruleId, enabled]) => ({
-      ruleId,
-      enabled,
-    }));
-    onComplete(rules);
+    onComplete(prompt);
   };
-
-  const enabledCount = Object.values(ruleStates).filter(Boolean).length;
-  const totalCount = template?.rules?.length || 0;
 
   if (isLoading) {
     return (
@@ -98,27 +50,35 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Configure Rules</h2>
+        <h2 className="text-2xl font-semibold">Edit Prompt</h2>
         <p className="text-muted-foreground">
-          Enable or disable rules for {template.name}. You can change these
-          later.
+          Customize the prompt for {template.name}. This defines what the agent
+          will look for when reviewing pull requests.
         </p>
       </div>
 
-      {/* Rules Manager */}
-      <AgentRulesManager
-        rules={transformedRules}
-        onToggleRule={handleToggle}
-        onBulkUpdate={handleBulkUpdate}
-        showSearch={false}
-      />
+      {/* Prompt Editor */}
+      <div className="space-y-2">
+        <Textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Enter the agent prompt..."
+          className="min-h-[400px] font-mono text-sm"
+        />
+        <p className="text-xs text-muted-foreground">
+          The prompt will be used to guide the agent&apos;s code review
+          analysis.
+        </p>
+      </div>
 
       {/* Navigation buttons */}
       <div className="flex justify-between border-t pt-6">
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={handleContinue}>Continue to Repositories</Button>
+        <Button onClick={handleContinue} disabled={!prompt.trim()}>
+          Continue to Repositories
+        </Button>
       </div>
     </div>
   );

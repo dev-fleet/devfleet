@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export type WizardData = {
   agentTemplateId: string;
   agentTemplateName: string;
-  rules: { ruleId: string; enabled: boolean }[];
+  prompt: string;
   repositoryIds: string[];
 };
 
@@ -33,17 +33,14 @@ export function AgentWizard() {
     []
   );
 
-  const handleStepTwoComplete = useCallback(
-    (rules: { ruleId: string; enabled: boolean }[]) => {
-      setWizardData((prev) => ({ ...prev, rules }));
-      setCurrentStep(3);
-    },
-    []
-  );
+  const handleStepTwoComplete = useCallback((prompt: string) => {
+    setWizardData((prev) => ({ ...prev, prompt }));
+    setCurrentStep(3);
+  }, []);
 
   const handleStepThreeComplete = useCallback(
     async (repositoryIds: string[]) => {
-      if (!wizardData.agentTemplateId || !wizardData.rules) {
+      if (!wizardData.agentTemplateId || !wizardData.prompt) {
         toast.error("Missing wizard data");
         return;
       }
@@ -55,7 +52,7 @@ export function AgentWizard() {
           name: wizardData.agentTemplateName || "New Agent",
           engine: "anthropic",
           description: null,
-          rules: wizardData.rules,
+          prompt: wizardData.prompt,
           repositoryIds,
         });
 
@@ -108,9 +105,7 @@ export function AgentWizard() {
       </div>
 
       {/* Step content */}
-      {currentStep === 1 && (
-        <StepOne onComplete={handleStepOneComplete} />
-      )}
+      {currentStep === 1 && <StepOne onComplete={handleStepOneComplete} />}
       {currentStep === 2 && wizardData.agentTemplateId && (
         <StepTwo
           agentTemplateId={wizardData.agentTemplateId}
@@ -128,4 +123,3 @@ export function AgentWizard() {
     </div>
   );
 }
-

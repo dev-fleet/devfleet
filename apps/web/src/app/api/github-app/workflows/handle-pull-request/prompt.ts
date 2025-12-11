@@ -25,7 +25,7 @@ export function promptClaude(
   return command;
 }
 
-export const buildPrompt = (agentPrompt: string, rules: string) =>
+export const buildPrompt = (agentPrompt: string) =>
   `
 You are a senior engineer conducting a focused review of the changes on this branch.
 
@@ -56,8 +56,6 @@ DIFF CONTENT:
 Review the complete diff above. This contains all code changes in the PR.
 
 {{AGENT_PROMPT}}
-
-{{RULES}}
 
 REQUIRED OUTPUT FORMAT:
 
@@ -102,6 +100,4 @@ Focus on HIGH and MEDIUM findings only. Better to miss some theoretical issues t
 Begin your analysis now. Use the repository exploration tools to understand the codebase context, then analyze the PR changes.
 
 Your final reply must contain the JSON and nothing else. You should not reply again after outputting the JSON.
-`
-    .replace("{{AGENT_PROMPT}}", agentPrompt)
-    .replace("{{RULES}}", rules);
+`.replace("{{AGENT_PROMPT}}", agentPrompt);
