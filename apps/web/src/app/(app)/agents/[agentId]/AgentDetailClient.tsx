@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useAgentDetail } from "@/utils/swr/agents";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -36,6 +36,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
+import { useDebounce } from "@workspace/ui/hooks/use-debounce";
+import { Spinner } from "@workspace/ui/components/spinner";
 
 export function AgentDetailClient({ agentId }: { agentId: string }) {
   const { data, error, mutate } = useAgentDetail(agentId);
@@ -47,29 +49,32 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
   const [testOpen, setTestOpen] = useState(false);
   const [testDiff, setTestDiff] = useState("");
 
+  const initialNameRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!data?.agent) return;
     setName(data.agent.name);
     setEngine(data.agent.engine as any);
     setDescription(data.agent.description ?? "");
+    initialNameRef.current = data.agent.name;
   }, [data]);
 
-  const onSave = useCallback(async () => {
+  const saveName = useDebounce(async (newName: string) => {
+    const trimmedName = newName.trim();
+    if (!trimmedName || trimmedName === initialNameRef.current) return;
+
     try {
       setSaving(true);
-      await updateAgent(agentId, {
-        name: name.trim(),
-        engine,
-        description: description.trim() || null,
-      });
-      toast.success("Agent saved");
+      await updateAgent(agentId, { name: trimmedName });
+      initialNameRef.current = trimmedName;
+      toast.success("Name saved");
       mutate();
-    } catch (e) {
-      toast.error("Failed to save agent");
+    } catch {
+      toast.error("Failed to save name");
     } finally {
       setSaving(false);
     }
-  }, [agentId, name, engine, description, mutate]);
+  }, 500);
 
   const handleToggleRule = useCallback(
     async (ruleId: string) => {
@@ -106,12 +111,21 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
       <div className="grid gap-4">
         <div className="grid gap-2">
           <label className="text-sm font-medium">Name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button onClick={onSave} disabled={saving}>
-            Save
-          </Button>
+          <div className="relative">
+            <Input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                saveName(e.target.value);
+              }}
+              className="pr-9"
+            />
+            {saving && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner className="text-muted-foreground" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
