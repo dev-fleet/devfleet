@@ -39,7 +39,7 @@ const PR_CHECK_RUN_STATUSES = [
   "skipped",
   "cancelled",
 ] as const;
-export const RULE_SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+export const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -281,37 +281,6 @@ export const agentTemplates = pgTable(
   ]
 );
 
-export const rules = pgTable(
-  "rules",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    agentTemplateId: text("agent_template_id")
-      .notNull()
-      .references(() => agentTemplates.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    instructions: text("instructions").notNull(),
-    severity: text("severity", { enum: RULE_SEVERITIES })
-      .notNull()
-      .default("MEDIUM"),
-    category: text("category"),
-    defaultEnabled: boolean("default_enabled").notNull().default(true),
-    order: integer("order").notNull().default(0),
-    // Denormalized for easier querying - inherits from parent agent template
-    ownerGhOrganizationId: text("owner_gh_organization_id").references(
-      () => ghOrganizations.id,
-      { onDelete: "cascade" }
-    ),
-    ...timestamps,
-  },
-  (table) => [
-    index("rules_agent_template_idx").on(table.agentTemplateId),
-    index("rules_severity_idx").on(table.severity),
-    index("rules_owner_idx").on(table.ownerGhOrganizationId),
-  ]
-);
-
 export const agents = pgTable(
   "agents",
   {
@@ -338,28 +307,6 @@ export const agents = pgTable(
   (table) => [
     index("agents_archived_idx").on(table.archived),
     index("agents_agent_template_idx").on(table.agentTemplateId),
-  ]
-);
-
-export const agentRules = pgTable(
-  "agent_rules",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    agentId: text("agent_id")
-      .notNull()
-      .references(() => agents.id, { onDelete: "cascade" }),
-    ruleId: text("rule_id")
-      .notNull()
-      .references(() => rules.id, { onDelete: "cascade" }),
-    enabled: boolean("enabled").notNull().default(true),
-    ...timestamps,
-  },
-  (table) => [
-    uniqueIndex("agent_rules_agent_rule_uq").on(table.agentId, table.ruleId),
-    index("agent_rules_agent_idx").on(table.agentId),
-    index("agent_rules_enabled_idx").on(table.enabled),
   ]
 );
 
@@ -439,7 +386,6 @@ export const prCheckRuns = pgTable(
 export const agentTemplatesRelations = relations(
   agentTemplates,
   ({ one, many }) => ({
-    rules: many(rules),
     agents: many(agents),
     ownerOrg: one(ghOrganizations, {
       fields: [agentTemplates.ownerGhOrganizationId],
@@ -447,18 +393,6 @@ export const agentTemplatesRelations = relations(
     }),
   })
 );
-
-export const rulesRelations = relations(rules, ({ one, many }) => ({
-  agentTemplate: one(agentTemplates, {
-    fields: [rules.agentTemplateId],
-    references: [agentTemplates.id],
-  }),
-  agentRules: many(agentRules),
-  ownerOrg: one(ghOrganizations, {
-    fields: [rules.ownerGhOrganizationId],
-    references: [ghOrganizations.id],
-  }),
-}));
 
 export const agentsRelations = relations(agents, ({ one, many }) => ({
   org: one(ghOrganizations, {
@@ -471,18 +405,6 @@ export const agentsRelations = relations(agents, ({ one, many }) => ({
   }),
   repoAgents: many(repoAgents),
   runs: many(prCheckRuns),
-  rules: many(agentRules),
-}));
-
-export const agentRulesRelations = relations(agentRules, ({ one }) => ({
-  agent: one(agents, {
-    fields: [agentRules.agentId],
-    references: [agents.id],
-  }),
-  rule: one(rules, {
-    fields: [agentRules.ruleId],
-    references: [rules.id],
-  }),
 }));
 
 export const pullRequestsRelations = relations(
@@ -580,7 +502,7 @@ export const repoAgentsRelations = relations(repoAgents, ({ one }) => ({
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 export type PrStatus = (typeof PR_STATUSES)[number];
 export type PrCheckRunStatus = (typeof PR_CHECK_RUN_STATUSES)[number];
-export type RuleSeverity = (typeof RULE_SEVERITIES)[number];
+export type Severity = (typeof SEVERITIES)[number];
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -594,8 +516,6 @@ export type PullRequest = typeof pullRequests.$inferSelect;
 export type NewPullRequest = typeof pullRequests.$inferInsert;
 export type AgentTemplate = typeof agentTemplates.$inferSelect;
 export type NewAgentTemplate = typeof agentTemplates.$inferInsert;
-export type Rule = typeof rules.$inferSelect;
-export type NewRule = typeof rules.$inferInsert;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
 export type RepoAgent = typeof repoAgents.$inferSelect;

@@ -8,7 +8,7 @@ import {
   pullRequests,
   prCheckRuns,
   agentTemplates,
-  RuleSeverity,
+  Severity,
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { Buffer } from "buffer";
@@ -351,7 +351,7 @@ function isAgentStructuredOutput(
   return Array.isArray(obj.findings);
 }
 
-function getSeverityEmoji(severity: RuleSeverity): string {
+function getSeverityEmoji(severity: Severity): string {
   switch (severity) {
     case "CRITICAL":
       return "🚨";

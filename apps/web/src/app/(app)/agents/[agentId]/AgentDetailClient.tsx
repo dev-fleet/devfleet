@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAgentDetail } from "@/utils/swr/agents";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -22,70 +22,87 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
-import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { Spinner } from "@workspace/ui/components/spinner";
+import {
+  Item,
+  ItemContent,
+  ItemTitle,
+  ItemActions,
+} from "@workspace/ui/components/item";
 
 export function AgentDetailClient({ agentId }: { agentId: string }) {
   const { data, error, mutate } = useAgentDetail(agentId);
 
   const [name, setName] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [savingName, setSavingName] = useState(false);
-  const [savingPrompt, setSavingPrompt] = useState(false);
+  const [initialName, setInitialName] = useState("");
+  const [initialPrompt, setInitialPrompt] = useState("");
+  const [saving, setSaving] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [testDiff, setTestDiff] = useState("");
 
-  const initialNameRef = useRef<string | null>(null);
-  const initialPromptRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (!data?.agent) return;
-    setName(data.agent.name);
-    setPrompt(data.agent.prompt ?? data.agentTemplate?.basePrompt ?? "");
-    initialNameRef.current = data.agent.name;
-    initialPromptRef.current =
+    const agentName = data.agent.name;
+    const agentPrompt =
       data.agent.prompt ?? data.agentTemplate?.basePrompt ?? "";
+    setName(agentName);
+    setPrompt(agentPrompt);
+    setInitialName(agentName);
+    setInitialPrompt(agentPrompt);
   }, [data]);
 
-  const saveName = useDebounce(async (newName: string) => {
-    const trimmedName = newName.trim();
-    if (!trimmedName || trimmedName === initialNameRef.current) return;
+  const hasUnsavedChanges = useMemo(() => {
+    const nameChanged = name.trim() !== initialName;
+    const promptChanged = prompt.trim() !== initialPrompt;
+    return nameChanged || promptChanged;
+  }, [name, prompt, initialName, initialPrompt]);
 
-    try {
-      setSavingName(true);
-      await updateAgent(agentId, { name: trimmedName });
-      initialNameRef.current = trimmedName;
-      toast.success("Name saved");
-      mutate();
-    } catch {
-      toast.error("Failed to save name");
-    } finally {
-      setSavingName(false);
+  const handleDiscard = () => {
+    setName(initialName);
+    setPrompt(initialPrompt);
+  };
+
+  const handleSave = async () => {
+    const trimmedName = name.trim();
+    const trimmedPrompt = prompt.trim();
+
+    if (!trimmedName) {
+      toast.error("Name cannot be empty");
+      return;
     }
-  }, 500);
 
-  const savePrompt = useDebounce(async (newPrompt: string) => {
-    const trimmedPrompt = newPrompt.trim();
-    if (trimmedPrompt === initialPromptRef.current) return;
-
-    // Don't save empty prompts - the workflow will fall back to basePrompt
     if (!trimmedPrompt) {
       toast.error("Prompt cannot be empty");
       return;
     }
 
     try {
-      setSavingPrompt(true);
-      await updateAgentPrompt(agentId, trimmedPrompt);
-      initialPromptRef.current = trimmedPrompt;
-      toast.success("Prompt saved");
+      setSaving(true);
+
+      const nameChanged = trimmedName !== initialName;
+      const promptChanged = trimmedPrompt !== initialPrompt;
+
+      if (nameChanged) {
+        await updateAgent(agentId, { name: trimmedName });
+      }
+
+      if (promptChanged) {
+        await updateAgentPrompt(agentId, trimmedPrompt);
+      }
+
+      // Update initial values to match saved state
+      setInitialName(trimmedName);
+      setInitialPrompt(trimmedPrompt);
+
+      toast.success("Changes saved");
       mutate();
     } catch {
-      toast.error("Failed to save prompt");
+      toast.error("Failed to save changes");
     } finally {
-      setSavingPrompt(false);
+      setSaving(false);
     }
-  }, 1000);
+  };
 
   const reposUsing = useMemo(() => data?.reposUsing ?? [], [data]);
   const recentRuns = useMemo(() => data?.recentRuns ?? [], [data]);
@@ -96,43 +113,21 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
       <div className="grid gap-4">
         <div className="grid gap-2">
           <label className="text-sm font-medium">Name</label>
-          <div className="relative">
-            <Input
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                saveName(e.target.value);
-              }}
-              className="pr-9"
-            />
-            {savingName && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Spinner className="text-muted-foreground" />
-              </div>
-            )}
-          </div>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
       </div>
 
       {/* Prompt Editor Section */}
       <div className="grid gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">Prompt</h2>
-            {savingPrompt && (
-              <Spinner className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
+          <h2 className="text-lg font-semibold">Prompt</h2>
           <p className="text-sm text-muted-foreground">
             Define what this agent looks for when reviewing pull requests
           </p>
         </div>
         <Textarea
           value={prompt}
-          onChange={(e) => {
-            setPrompt(e.target.value);
-            savePrompt(e.target.value);
-          }}
+          onChange={(e) => setPrompt(e.target.value)}
           placeholder="Enter the agent prompt..."
           className="min-h-[400px] font-mono text-sm"
         />
@@ -254,6 +249,37 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
           </div>
         </div>
       </div>
+
+      {/* Unsaved Changes Bar */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-2xl -translate-x-1/2 px-4">
+          <Item variant="outline" size="sm" className="bg-background shadow-lg">
+            <ItemContent>
+              <ItemTitle>Unsaved changes</ItemTitle>
+            </ItemContent>
+            <ItemActions>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDiscard}
+                disabled={saving}
+              >
+                Discard
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Spinner className="mr-2 h-4 w-4" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </ItemActions>
+          </Item>
+        </div>
+      )}
     </div>
   );
 }

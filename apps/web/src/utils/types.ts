@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { RULE_SEVERITIES } from "@/db/schema";
+import { SEVERITIES } from "@/db/schema";
 
 // Types for Claude CLI output parsing
 // The CLI extends the SDK's Usage type with additional cache_creation details
@@ -34,7 +34,7 @@ export const AgentStructuredOutputSchema = z.object({
     z.object({
       file: z.string(),
       line: z.number().min(0),
-      severity: z.enum(RULE_SEVERITIES),
+      severity: z.enum(SEVERITIES),
       description: z.string(),
       recommendation: z.string(),
       confidence: z.number().min(0).max(1),

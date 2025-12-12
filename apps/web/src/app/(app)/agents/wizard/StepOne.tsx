@@ -111,17 +111,13 @@ export function StepOne({ onComplete }: StepOneProps) {
                     {template.description}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Badge variant="secondary">{template.ruleCount} rules</Badge>
-                  <Badge variant="secondary">
-                    {template.defaultEnabledCount} enabled by default
-                  </Badge>
-                  {template.category && (
+                {template.category && (
+                  <div className="flex gap-2">
                     <Badge variant="outline" className="capitalize">
                       {template.category}
                     </Badge>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Selection indicator */}

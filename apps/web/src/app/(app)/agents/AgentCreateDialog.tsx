@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { Button } from "@workspace/ui/components/button";
-import { Badge } from "@workspace/ui/components/badge";
 import { createAgent } from "@/actions/agents";
 import { useAgentTypes } from "@/hooks/useAgentTypes";
 import { toast } from "sonner";
@@ -82,7 +81,15 @@ export function AgentCreateDialog({
     } finally {
       setSubmitting(false);
     }
-  }, [name, agentTemplateId, engine, description, onOpenChange, onCreated, reset]);
+  }, [
+    name,
+    agentTemplateId,
+    engine,
+    description,
+    onOpenChange,
+    onCreated,
+    reset,
+  ]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -90,8 +97,7 @@ export function AgentCreateDialog({
         <DialogHeader>
           <DialogTitle>New agent</DialogTitle>
           <DialogDescription>
-            Create an agent from a template with predefined rules that you can
-            customize.
+            Create an agent from a template that you can customize.
           </DialogDescription>
         </DialogHeader>
 
@@ -109,7 +115,7 @@ export function AgentCreateDialog({
               <SelectContent>
                 {agentTemplates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
-                    {template.name} ({template.ruleCount} rules)
+                    {template.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -119,14 +125,6 @@ export function AgentCreateDialog({
                 <p className="text-muted-foreground">
                   {selectedAgentTemplate.description}
                 </p>
-                <div className="mt-2 flex gap-2">
-                  <Badge variant="secondary">
-                    {selectedAgentTemplate.ruleCount} rules
-                  </Badge>
-                  <Badge variant="secondary">
-                    {selectedAgentTemplate.defaultEnabledCount} enabled by default
-                  </Badge>
-                </div>
               </div>
             )}
           </div>

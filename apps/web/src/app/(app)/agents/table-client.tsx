@@ -104,7 +104,7 @@ export function AgentsTableClient() {
                       </p>
                       <p className="mt-1.5">
                         <strong>Custom:</strong> User-created agents with custom
-                        configurations and rules.
+                        configurations.
                       </p>
                     </TooltipContent>
                   </Tooltip>
