@@ -5,6 +5,7 @@ import { useAgentDetail } from "@/utils/swr/agents";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { Button } from "@workspace/ui/components/button";
+import { PromptEditor } from "@/components/prompt-editor";
 import {
   Table,
   TableBody,
@@ -120,16 +121,15 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
       {/* Prompt Editor Section */}
       <div className="grid gap-4">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold">Prompt</h2>
+          <h2 className="text-lg font-semibold">Agent Instructions</h2>
           <p className="text-sm text-muted-foreground">
-            Define what this agent looks for when reviewing pull requests
+            Define what this agent will look for when reviewing pull requests.
           </p>
         </div>
-        <Textarea
+        <PromptEditor
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enter the agent prompt..."
-          className="min-h-[400px] font-mono text-sm"
+          onChange={setPrompt}
+          placeholder="Enter the agent instructions..."
         />
       </div>
 

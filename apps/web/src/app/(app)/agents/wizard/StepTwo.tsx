@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAgentTemplates } from "@/hooks/useAgentTemplates";
 import { Button } from "@workspace/ui/components/button";
-import { Textarea } from "@workspace/ui/components/textarea";
+import { PromptEditor } from "@/components/prompt-editor";
 import { Loader2 } from "lucide-react";
 
 interface StepTwoProps {
@@ -59,11 +59,10 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
 
       {/* Prompt Editor */}
       <div className="space-y-2">
-        <Textarea
+        <PromptEditor
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enter the agent prompt..."
-          className="min-h-[400px] font-mono text-sm"
+          onChange={setPrompt}
+          placeholder="Enter the agent instructions..."
         />
         <p className="text-xs text-muted-foreground">
           The prompt will be used to guide the agent&apos;s code review
