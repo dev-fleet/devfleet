@@ -10,6 +10,8 @@ import {
   EditorState,
   FORMAT_TEXT_COMMAND,
   TextFormatType,
+  KEY_DOWN_COMMAND,
+  COMMAND_PRIORITY_HIGH,
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -461,6 +463,27 @@ function CodeHighlightPlugin() {
   return null;
 }
 
+// Plugin to prevent ⌘+Enter from inserting a new line (used for global save shortcut)
+function PreventMetaEnterPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      (event: KeyboardEvent) => {
+        if (event.metaKey && event.key === "Enter") {
+          event.preventDefault();
+          return true; // Prevent Lexical from handling this
+        }
+        return false;
+      },
+      COMMAND_PRIORITY_HIGH
+    );
+  }, [editor]);
+
+  return null;
+}
+
 // Plugin to sync value with editor state
 function EditorValuePlugin({
   value,
@@ -600,6 +623,7 @@ export function PromptEditor({
         <HistoryPlugin />
         <ListPlugin />
         <CodeHighlightPlugin />
+        <PreventMetaEnterPlugin />
         <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
         <EditorValuePlugin
           value={value}

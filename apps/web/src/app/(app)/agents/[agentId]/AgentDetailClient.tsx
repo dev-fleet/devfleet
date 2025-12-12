@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAgentDetail } from "@/utils/swr/agents";
 import { Input } from "@workspace/ui/components/input";
 import { Textarea } from "@workspace/ui/components/textarea";
@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { Spinner } from "@workspace/ui/components/spinner";
+import { Kbd } from "@workspace/ui/components/kbd";
 import {
   Item,
   ItemContent,
@@ -64,7 +65,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     setPrompt(initialPrompt);
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
     const trimmedPrompt = prompt.trim();
 
@@ -103,7 +104,20 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     } finally {
       setSaving(false);
     }
-  };
+  }, [name, prompt, initialName, initialPrompt, agentId, mutate]);
+
+  // Global keyboard shortcut: ⌘ + Enter to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === "Enter" && hasUnsavedChanges && !saving) {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [hasUnsavedChanges, saving, handleSave]);
 
   const reposUsing = useMemo(() => data?.reposUsing ?? [], [data]);
   const recentRuns = useMemo(() => data?.recentRuns ?? [], [data]);
@@ -273,7 +287,10 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
                     Saving...
                   </>
                 ) : (
-                  "Save Changes"
+                  <>
+                    Save Changes
+                    <Kbd className="ml-2">⌘↵</Kbd>
+                  </>
                 )}
               </Button>
             </ItemActions>
