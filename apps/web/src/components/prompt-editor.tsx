@@ -15,6 +15,7 @@ import {
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
@@ -74,6 +75,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
+import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+
+type EditorMode = "rich" | "plain";
 
 // Theme for the prompt editor
 const theme = {
@@ -209,7 +213,15 @@ function ToolbarDivider() {
 }
 
 // Toolbar plugin component
-function ToolbarPlugin({ disabled }: { disabled?: boolean }) {
+function ToolbarPlugin({
+  disabled,
+  mode,
+  onModeChange,
+}: {
+  disabled?: boolean;
+  mode: EditorMode;
+  onModeChange: (mode: EditorMode) => void;
+}) {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -339,115 +351,135 @@ function ToolbarPlugin({ disabled }: { disabled?: boolean }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/30",
+        "flex items-center justify-between px-2 py-1.5 border-b border-border bg-muted/30",
         disabled && "opacity-50 pointer-events-none"
       )}
     >
-      {/* Text formatting */}
-      <ToolbarButton
-        onClick={() => formatText("bold")}
-        isActive={isBold}
-        disabled={disabled}
-        icon={Bold}
-        tooltip="Bold"
-        shortcut="⌘B"
-      />
-      <ToolbarButton
-        onClick={() => formatText("italic")}
-        isActive={isItalic}
-        disabled={disabled}
-        icon={Italic}
-        tooltip="Italic"
-        shortcut="⌘I"
-      />
-      <ToolbarButton
-        onClick={() => formatText("strikethrough")}
-        isActive={isStrikethrough}
-        disabled={disabled}
-        icon={Strikethrough}
-        tooltip="Strikethrough"
-      />
-      <ToolbarButton
-        onClick={() => formatText("code")}
-        isActive={isCode}
-        disabled={disabled}
-        icon={Code}
-        tooltip="Inline Code"
-      />
+      {/* Mode tabs on the left */}
+      <Tabs
+        value={mode}
+        onValueChange={(value) => onModeChange(value as EditorMode)}
+      >
+        <TabsList className="h-7">
+          <TabsTrigger value="rich" className="text-xs px-2.5 py-1">
+            Rich Text
+          </TabsTrigger>
+          <TabsTrigger value="plain" className="text-xs px-2.5 py-1">
+            Plain Text
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      <ToolbarDivider />
+      {/* Formatting buttons on the right - only visible in rich text mode */}
+      {mode === "rich" && (
+        <div className="flex items-center gap-0.5">
+          {/* Text formatting */}
+          <ToolbarButton
+            onClick={() => formatText("bold")}
+            isActive={isBold}
+            disabled={disabled}
+            icon={Bold}
+            tooltip="Bold"
+            shortcut="⌘B"
+          />
+          <ToolbarButton
+            onClick={() => formatText("italic")}
+            isActive={isItalic}
+            disabled={disabled}
+            icon={Italic}
+            tooltip="Italic"
+            shortcut="⌘I"
+          />
+          <ToolbarButton
+            onClick={() => formatText("strikethrough")}
+            isActive={isStrikethrough}
+            disabled={disabled}
+            icon={Strikethrough}
+            tooltip="Strikethrough"
+          />
+          <ToolbarButton
+            onClick={() => formatText("code")}
+            isActive={isCode}
+            disabled={disabled}
+            icon={Code}
+            tooltip="Inline Code"
+          />
 
-      {/* Block formatting */}
-      <ToolbarButton
-        onClick={formatParagraph}
-        isActive={blockType === "paragraph"}
-        disabled={disabled}
-        icon={Pilcrow}
-        tooltip="Paragraph"
-      />
-      <ToolbarButton
-        onClick={() => formatHeading("h1")}
-        isActive={blockType === "h1"}
-        disabled={disabled}
-        icon={Heading1}
-        tooltip="Heading 1"
-      />
-      <ToolbarButton
-        onClick={() => formatHeading("h2")}
-        isActive={blockType === "h2"}
-        disabled={disabled}
-        icon={Heading2}
-        tooltip="Heading 2"
-      />
-      <ToolbarButton
-        onClick={() => formatHeading("h3")}
-        isActive={blockType === "h3"}
-        disabled={disabled}
-        icon={Heading3}
-        tooltip="Heading 3"
-      />
+          <ToolbarDivider />
 
-      <ToolbarDivider />
+          {/* Block formatting */}
+          <ToolbarButton
+            onClick={formatParagraph}
+            isActive={blockType === "paragraph"}
+            disabled={disabled}
+            icon={Pilcrow}
+            tooltip="Paragraph"
+          />
+          <ToolbarButton
+            onClick={() => formatHeading("h1")}
+            isActive={blockType === "h1"}
+            disabled={disabled}
+            icon={Heading1}
+            tooltip="Heading 1"
+          />
+          <ToolbarButton
+            onClick={() => formatHeading("h2")}
+            isActive={blockType === "h2"}
+            disabled={disabled}
+            icon={Heading2}
+            tooltip="Heading 2"
+          />
+          <ToolbarButton
+            onClick={() => formatHeading("h3")}
+            isActive={blockType === "h3"}
+            disabled={disabled}
+            icon={Heading3}
+            tooltip="Heading 3"
+          />
 
-      {/* Lists and quote */}
-      <ToolbarButton
-        onClick={formatBulletList}
-        isActive={blockType === "bullet"}
-        disabled={disabled}
-        icon={List}
-        tooltip="Bullet List"
-      />
-      <ToolbarButton
-        onClick={formatNumberedList}
-        isActive={blockType === "number"}
-        disabled={disabled}
-        icon={ListOrdered}
-        tooltip="Numbered List"
-      />
-      <ToolbarButton
-        onClick={formatQuote}
-        isActive={blockType === "quote"}
-        disabled={disabled}
-        icon={Quote}
-        tooltip="Quote"
-      />
-      <ToolbarButton
-        onClick={formatCodeBlock}
-        isActive={blockType === "code"}
-        disabled={disabled}
-        icon={FileCode}
-        tooltip="Code Block"
-      />
+          <ToolbarDivider />
 
-      <ToolbarDivider />
+          {/* Lists and quote */}
+          <ToolbarButton
+            onClick={formatBulletList}
+            isActive={blockType === "bullet"}
+            disabled={disabled}
+            icon={List}
+            tooltip="Bullet List"
+          />
+          <ToolbarButton
+            onClick={formatNumberedList}
+            isActive={blockType === "number"}
+            disabled={disabled}
+            icon={ListOrdered}
+            tooltip="Numbered List"
+          />
+          <ToolbarButton
+            onClick={formatQuote}
+            isActive={blockType === "quote"}
+            disabled={disabled}
+            icon={Quote}
+            tooltip="Quote"
+          />
+          <ToolbarButton
+            onClick={formatCodeBlock}
+            isActive={blockType === "code"}
+            disabled={disabled}
+            icon={FileCode}
+            tooltip="Code Block"
+          />
 
-      {/* Horizontal rule */}
-      <ToolbarButton
-        onClick={insertHorizontalRule}
-        disabled={disabled}
-        icon={Minus}
-        tooltip="Horizontal Rule"
-      />
+          <ToolbarDivider />
+
+          {/* Horizontal rule */}
+          <ToolbarButton
+            onClick={insertHorizontalRule}
+            disabled={disabled}
+            icon={Minus}
+            tooltip="Horizontal Rule"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -484,8 +516,8 @@ function PreventMetaEnterPlugin() {
   return null;
 }
 
-// Plugin to sync value with editor state
-function EditorValuePlugin({
+// Plugin to sync value with editor state (Rich Text mode)
+function RichTextValuePlugin({
   value,
   onChange,
   internalValueRef,
@@ -557,6 +589,73 @@ function EditorValuePlugin({
   return <OnChangePlugin onChange={handleChange} ignoreSelectionChange />;
 }
 
+// Plugin to sync value with editor state (Plain Text mode)
+function PlainTextValuePlugin({
+  value,
+  onChange,
+  internalValueRef,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  internalValueRef: React.RefObject<string>;
+}) {
+  const [editor] = useLexicalComposerContext();
+  // Track when we're syncing external value to prevent onChange firing
+  const isSyncingRef = useRef(false);
+
+  // Sync external value changes into the editor
+  useEffect(() => {
+    // Skip if this is the value we just output (prevents cursor jumping)
+    if (value === internalValueRef.current) {
+      return;
+    }
+
+    // Mark that we're syncing to prevent onChange from firing
+    isSyncingRef.current = true;
+
+    // Update editor with new external value (as plain text)
+    editor.update(
+      () => {
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        paragraph.append($createTextNode(value || ""));
+        root.append(paragraph);
+      },
+      {
+        discrete: true,
+      }
+    );
+
+    internalValueRef.current = value;
+
+    // Reset sync flag after a tick to allow the update to complete
+    requestAnimationFrame(() => {
+      isSyncingRef.current = false;
+    });
+  }, [editor, value, internalValueRef]);
+
+  // Handle editor changes - get plain text and notify parent
+  const handleChange = useCallback(
+    (editorState: EditorState) => {
+      // Don't fire onChange when we're syncing external values
+      if (isSyncingRef.current) {
+        return;
+      }
+
+      editorState.read(() => {
+        const text = $getRoot().getTextContent();
+        // Update ref BEFORE calling onChange to prevent sync loop
+        internalValueRef.current = text;
+        onChange(text);
+      });
+    },
+    [onChange, internalValueRef]
+  );
+
+  return <OnChangePlugin onChange={handleChange} ignoreSelectionChange />;
+}
+
 export interface PromptEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -574,14 +673,35 @@ export function PromptEditor({
   minHeight = "400px",
   disabled = false,
 }: PromptEditorProps) {
+  const [mode, setMode] = useState<EditorMode>("rich");
   // Track what the editor last output to distinguish internal vs external changes
   const internalValueRef = useRef(value);
 
-  const initialConfig = {
-    namespace: "PromptEditor",
+  // Handle mode change - reset the internal ref so the new editor will sync the value
+  const handleModeChange = useCallback((newMode: EditorMode) => {
+    // Reset the ref to force the new editor to sync the current value
+    internalValueRef.current = "";
+    setMode(newMode);
+  }, []);
+
+  // Rich text mode config with all nodes
+  const richTextConfig = {
+    namespace: "PromptEditor-Rich",
     theme,
     onError,
     nodes: editorNodes,
+    editable: !disabled,
+  };
+
+  // Plain text mode config - minimal nodes
+  const plainTextConfig = {
+    namespace: "PromptEditor-Plain",
+    theme: {
+      root: "h-full",
+      paragraph: "mb-0",
+    },
+    onError,
+    nodes: [],
     editable: !disabled,
   };
 
@@ -594,42 +714,85 @@ export function PromptEditor({
         className
       )}
     >
-      <LexicalComposer initialConfig={initialConfig}>
-        <ToolbarPlugin disabled={disabled} />
+      {/* Use key to force remount when mode changes */}
+      <LexicalComposer
+        key={mode}
+        initialConfig={mode === "rich" ? richTextConfig : plainTextConfig}
+      >
+        <ToolbarPlugin
+          disabled={disabled}
+          mode={mode}
+          onModeChange={handleModeChange}
+        />
         <div className="relative">
-          <RichTextPlugin
-            contentEditable={
-              <ContentEditable
-                className={cn(
-                  "outline-none px-3 py-2 text-sm font-mono overflow-auto",
-                  "prose prose-sm dark:prose-invert max-w-none",
-                  "[&_p]:my-0 [&_ul]:my-1 [&_ol]:my-1"
-                )}
-                style={{ minHeight }}
-                aria-placeholder={placeholder}
-                placeholder={
-                  <div
-                    className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground font-mono"
-                    aria-hidden
-                  >
-                    {placeholder}
-                  </div>
-                }
-              />
-            }
-            ErrorBoundary={LexicalErrorBoundary}
-          />
+          {mode === "rich" ? (
+            <RichTextPlugin
+              contentEditable={
+                <ContentEditable
+                  className={cn(
+                    "outline-none px-3 py-2 text-sm font-mono overflow-auto",
+                    "prose prose-sm dark:prose-invert max-w-none",
+                    "[&_p]:my-0 [&_ul]:my-1 [&_ol]:my-1"
+                  )}
+                  style={{ minHeight }}
+                  aria-placeholder={placeholder}
+                  placeholder={
+                    <div
+                      className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground font-mono"
+                      aria-hidden
+                    >
+                      {placeholder}
+                    </div>
+                  }
+                />
+              }
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+          ) : (
+            <PlainTextPlugin
+              contentEditable={
+                <ContentEditable
+                  className={cn(
+                    "outline-none px-3 py-2 text-sm font-mono overflow-auto whitespace-pre-wrap"
+                  )}
+                  style={{ minHeight }}
+                  aria-placeholder={placeholder}
+                  placeholder={
+                    <div
+                      className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground font-mono"
+                      aria-hidden
+                    >
+                      {placeholder}
+                    </div>
+                  }
+                />
+              }
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+          )}
         </div>
         <HistoryPlugin />
-        <ListPlugin />
-        <CodeHighlightPlugin />
+        {mode === "rich" && (
+          <>
+            <ListPlugin />
+            <CodeHighlightPlugin />
+            <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+          </>
+        )}
         <PreventMetaEnterPlugin />
-        <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-        <EditorValuePlugin
-          value={value}
-          onChange={onChange}
-          internalValueRef={internalValueRef}
-        />
+        {mode === "rich" ? (
+          <RichTextValuePlugin
+            value={value}
+            onChange={onChange}
+            internalValueRef={internalValueRef}
+          />
+        ) : (
+          <PlainTextValuePlugin
+            value={value}
+            onChange={onChange}
+            internalValueRef={internalValueRef}
+          />
+        )}
       </LexicalComposer>
     </div>
   );
