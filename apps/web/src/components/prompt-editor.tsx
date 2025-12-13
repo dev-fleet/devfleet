@@ -732,7 +732,7 @@ export function PromptEditor({
                   className={cn(
                     "outline-none px-3 py-2 text-sm font-mono overflow-auto",
                     "prose prose-sm dark:prose-invert max-w-none",
-                    "[&_p]:my-0 [&_ul]:my-1 [&_ol]:my-1"
+                    "[&_ul]:my-1 [&_ol]:my-1"
                   )}
                   style={{ minHeight }}
                   aria-placeholder={placeholder}
