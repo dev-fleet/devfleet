@@ -138,14 +138,27 @@ export async function duplicateAgent(agentId: string) {
 export async function archiveAgent(agentId: string) {
   const orgId = await getDefaultOrgId();
 
-  await db
-    .update(agents)
-    .set({ archived: true })
-    .where(
-      and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId))
-    );
+  await db.transaction(async (tx) => {
+    // Remove agent from all repositories before archiving
+    await tx
+      .delete(repoAgents)
+      .where(
+        and(
+          eq(repoAgents.agentId, agentId),
+          eq(repoAgents.ownerGhOrganizationId, orgId)
+        )
+      );
+
+    await tx
+      .update(agents)
+      .set({ archived: true })
+      .where(
+        and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId))
+      );
+  });
 
   revalidatePath("/dashboard/agents");
+  revalidatePath("/repositories");
   return { success: true } as const;
 }
 
