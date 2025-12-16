@@ -1,6 +1,6 @@
 import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
-import { repositories, users } from "@/db/schema";
+import { repositories, users, pullRequests, repoAgents } from "@/db/schema";
 import { eq, and, desc, count, ilike, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -43,7 +43,8 @@ async function getRepositories(
 
   const total = totalResult[0]?.count || 0;
 
-  // Get repositories with aggregated stats using subqueries (single query, no N+1)
+  // Get repositories with aggregated stats using correlated subqueries
+  // More efficient for paginated queries - fetch top N repos first, then run subqueries only on those rows
   const repos = await db
     .select({
       id: repositories.id,
@@ -54,16 +55,24 @@ async function getRepositories(
       defaultBranch: repositories.defaultBranch,
       private: repositories.private,
       updatedAt: repositories.updatedAt,
-      openPRs: sql<number>`(
-        SELECT COUNT(*)::int FROM pull_requests 
-        WHERE pull_requests.repo_id = ${repositories.id} 
-        AND pull_requests.state = 'open'
-      )`.as("open_prs"),
-      activeAgents: sql<number>`(
-        SELECT COUNT(*)::int FROM repo_agents 
-        WHERE repo_agents.repo_id = ${repositories.id} 
-        AND repo_agents.enabled = true
-      )`.as("active_agents"),
+      openPRs: sql<number>`(${db
+        .select({ count: count() })
+        .from(pullRequests)
+        .where(
+          and(
+            eq(pullRequests.repoId, repositories.id),
+            eq(pullRequests.state, "open")
+          )
+        )})`,
+      activeAgents: sql<number>`(${db
+        .select({ count: count() })
+        .from(repoAgents)
+        .where(
+          and(
+            eq(repoAgents.repoId, repositories.id),
+            eq(repoAgents.enabled, true)
+          )
+        )})`,
     })
     .from(repositories)
     .where(whereConditions)
