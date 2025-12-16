@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -11,42 +11,89 @@ import {
 } from "@workspace/ui/components/table";
 import { Input } from "@workspace/ui/components/input";
 import { Badge } from "@workspace/ui/components/badge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@workspace/ui/components/pagination";
+import { useDebounce } from "@workspace/ui/hooks/use-debounce";
 import { GitBranch } from "lucide-react";
 import Link from "next/link";
 import { useRepositories } from "@/utils/swr/repositories";
-import type { RepositoryResponse } from "@/app/api/repositories/route";
+
+const ITEMS_PER_PAGE = 25;
 
 export function ReposTableClient() {
-  const { data, error } = useRepositories();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const repositories = useMemo(
-    () => (data ?? []) as RepositoryResponse,
-    [data]
-  );
+  // Debounce search to avoid excessive API calls
+  const debouncedSetSearch = useDebounce((value: string) => {
+    setDebouncedSearch(value);
+    setCurrentPage(1); // Reset to page 1 when search changes
+  }, 300);
 
-  const filteredRepos = useMemo(() => {
-    let filtered = repositories;
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    debouncedSetSearch(value);
+  };
 
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter((repo) =>
-        repo.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  const { data, error, isLoading } = useRepositories({
+    page: currentPage,
+    limit: ITEMS_PER_PAGE,
+    search: debouncedSearch || undefined,
+  });
+
+  const repos = data?.data ?? [];
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 0;
+  const total = pagination?.total ?? 0;
+
+  // Generate page numbers to show
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("ellipsis");
+      for (
+        let i = Math.max(2, currentPage - 1);
+        i <= Math.min(totalPages - 1, currentPage + 1);
+        i++
+      ) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
     }
+    return pages;
+  };
 
-    return filtered;
-  }, [repositories, searchQuery]);
+  const startItem =
+    repos.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0;
+  const endItem = (currentPage - 1) * ITEMS_PER_PAGE + repos.length;
 
   return (
     <>
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center justify-between">
         <Input
           placeholder="Search repositories..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={handleSearchChange}
           className="max-w-sm"
         />
+        {total > 0 && (
+          <span className="text-sm text-muted-foreground">
+            Showing {startItem}-{endItem} of {total} repositories
+          </span>
+        )}
       </div>
 
       <div className="border rounded-lg">
@@ -66,7 +113,7 @@ export function ReposTableClient() {
                 </TableCell>
               </TableRow>
             )}
-            {!error && !data && (
+            {!error && isLoading && !data && (
               <TableRow>
                 <TableCell
                   colSpan={3}
@@ -76,7 +123,7 @@ export function ReposTableClient() {
                 </TableCell>
               </TableRow>
             )}
-            {!error && data && filteredRepos.length === 0 && (
+            {!error && data && repos.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={3}
@@ -86,9 +133,8 @@ export function ReposTableClient() {
                 </TableCell>
               </TableRow>
             )}
-            {data &&
-              filteredRepos.length > 0 &&
-              filteredRepos.map((repo) => (
+            {repos.length > 0 &&
+              repos.map((repo) => (
                 <TableRow
                   key={repo.id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -129,6 +175,54 @@ export function ReposTableClient() {
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                aria-disabled={currentPage === 1}
+                className={
+                  currentPage === 1
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }
+              />
+            </PaginationItem>
+            {getPageNumbers().map((page, idx) =>
+              page === "ellipsis" ? (
+                <PaginationItem key={`ellipsis-${idx}`}>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              ) : (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    onClick={() => setCurrentPage(page)}
+                    isActive={currentPage === page}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            )}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                aria-disabled={currentPage === totalPages}
+                className={
+                  currentPage === totalPages
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </>
   );
 }
