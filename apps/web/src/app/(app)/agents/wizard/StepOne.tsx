@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useAgentTemplates } from "@/hooks/useAgentTemplates";
 import { Card, CardContent } from "@workspace/ui/components/card";
 import { Badge } from "@workspace/ui/components/badge";
@@ -64,11 +63,9 @@ export function StepOne({ onComplete }: StepOneProps) {
               {/* Icon */}
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                 {template.icon ? (
-                  <Image
-                    src={`/agent-icons/${template.icon}.svg`}
+                  <img
+                    src={`/agent-icons/${template.icon}`}
                     alt={`${template.name} icon`}
-                    width={28}
-                    height={28}
                     className="h-7 w-7"
                   />
                 ) : (
