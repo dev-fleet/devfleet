@@ -19,13 +19,13 @@ export function StepThree({
   onBack,
   isSubmitting,
 }: StepThreeProps) {
-  const { data, isLoading, error } = useRepositories();
+  // Fetch a large page to get all repos for selection
+  const { data, isLoading, error } = useRepositories({ limit: 1000 });
   const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
 
   const repositories = useMemo(() => {
-    if (!data || "error" in data) return [];
-    return data;
+    return data?.data ?? [];
   }, [data]);
 
   // Filter repositories based on search query

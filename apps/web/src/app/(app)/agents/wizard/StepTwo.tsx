@@ -50,10 +50,10 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Edit Prompt</h2>
+        <h2 className="text-2xl font-semibold">Edit Instructions</h2>
         <p className="text-muted-foreground">
-          Customize the prompt for {template.name}. This defines what the agent
-          will look for when reviewing pull requests.
+          Customize the instructions for {template.name}. This defines what the
+          agent will look for when reviewing pull requests.
         </p>
       </div>
 
@@ -65,8 +65,7 @@ export function StepTwo({ agentTemplateId, onComplete, onBack }: StepTwoProps) {
           placeholder="Enter the agent instructions..."
         />
         <p className="text-xs text-muted-foreground">
-          The prompt will be used to guide the agent&apos;s code review
-          analysis.
+          Instructions will be used to guide the agent.
         </p>
       </div>
 

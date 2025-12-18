@@ -730,7 +730,7 @@ export function PromptEditor({
               contentEditable={
                 <ContentEditable
                   className={cn(
-                    "outline-none px-3 py-2 text-sm font-mono overflow-auto",
+                    "outline-none px-3 py-2 text-sm overflow-auto",
                     "prose prose-sm dark:prose-invert max-w-none",
                     "[&_ul]:my-1 [&_ol]:my-1"
                   )}
@@ -738,7 +738,7 @@ export function PromptEditor({
                   aria-placeholder={placeholder}
                   placeholder={
                     <div
-                      className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground font-mono"
+                      className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground"
                       aria-hidden
                     >
                       {placeholder}
@@ -753,13 +753,13 @@ export function PromptEditor({
               contentEditable={
                 <ContentEditable
                   className={cn(
-                    "outline-none px-3 py-2 text-sm font-mono overflow-auto whitespace-pre-wrap"
+                    "outline-none px-3 py-2 text-sm overflow-auto whitespace-pre-wrap"
                   )}
                   style={{ minHeight }}
                   aria-placeholder={placeholder}
                   placeholder={
                     <div
-                      className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground font-mono"
+                      className="pointer-events-none absolute top-2 left-3 text-sm text-muted-foreground"
                       aria-hidden
                     >
                       {placeholder}
