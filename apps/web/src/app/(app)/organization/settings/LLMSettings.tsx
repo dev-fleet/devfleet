@@ -1,23 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  Loader2,
-  Key,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { Loader2, Trash2, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { useOrgSettings } from "@/hooks/useOrgSettings";
-import {
-  saveApiKey,
-  deleteApiKey,
-  testAnthropicApiKey,
-} from "@/actions/llm-settings";
+import { saveApiKey, deleteApiKey } from "@/actions/llm-settings";
 
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
@@ -43,51 +31,12 @@ export function LLMSettings() {
   const { data, isLoading, error, mutate } = useOrgSettings();
   const [anthropicKey, setAnthropicKey] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
   const [showKey, setShowKey] = useState(false);
 
   const existingAnthropicKey = data?.apiKeys.find(
     (key) => key.provider === "anthropic"
   );
-
-  const handleTestKey = useCallback(async () => {
-    if (!anthropicKey.trim()) {
-      toast.error("Please enter an API key to test");
-      return;
-    }
-
-    setIsTesting(true);
-    setTestResult(null);
-
-    try {
-      const result = await testAnthropicApiKey(anthropicKey);
-      setTestResult({
-        success: result.success,
-        message: result.success
-          ? "API key is valid!"
-          : result.error || "Invalid API key",
-      });
-
-      if (result.success) {
-        toast.success("API key is valid!");
-      } else {
-        toast.error(result.error || "API key validation failed");
-      }
-    } catch {
-      setTestResult({
-        success: false,
-        message: "Failed to test API key",
-      });
-      toast.error("Failed to test API key");
-    } finally {
-      setIsTesting(false);
-    }
-  }, [anthropicKey]);
 
   const handleSaveKey = useCallback(async () => {
     if (!anthropicKey.trim()) {
@@ -101,10 +50,9 @@ export function LLMSettings() {
       const result = await saveApiKey("anthropic", anthropicKey);
 
       if (result.success) {
-        toast.success("API key saved successfully");
         setAnthropicKey("");
-        setTestResult(null);
         mutate();
+        toast.success("API key saved successfully");
       } else {
         toast.error(result.error || "Failed to save API key");
       }
@@ -285,16 +233,13 @@ export function LLMSettings() {
               </AlertDialog>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="relative">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <Input
                   type={showKey ? "text" : "password"}
                   placeholder="sk-ant-api03-..."
                   value={anthropicKey}
-                  onChange={(e) => {
-                    setAnthropicKey(e.target.value);
-                    setTestResult(null);
-                  }}
+                  onChange={(e) => setAnthropicKey(e.target.value)}
                   className="pr-10 font-mono text-sm"
                 />
                 <Button
@@ -311,43 +256,13 @@ export function LLMSettings() {
                   )}
                 </Button>
               </div>
-
-              {testResult && (
-                <div
-                  className={`flex items-center gap-2 text-sm ${
-                    testResult.success ? "text-green-600" : "text-destructive"
-                  }`}
-                >
-                  {testResult.success ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <XCircle className="h-4 w-4" />
-                  )}
-                  {testResult.message}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleTestKey}
-                  disabled={isTesting || !anthropicKey.trim()}
-                >
-                  {isTesting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Test Key
-                </Button>
-                <Button
-                  onClick={handleSaveKey}
-                  disabled={isSaving || !anthropicKey.trim()}
-                >
-                  {isSaving && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Save Key
-                </Button>
-              </div>
+              <Button
+                onClick={handleSaveKey}
+                disabled={isSaving || !anthropicKey.trim()}
+              >
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save
+              </Button>
             </div>
           )}
         </div>

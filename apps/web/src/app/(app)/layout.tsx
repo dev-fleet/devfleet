@@ -16,11 +16,7 @@ export const metadata: Metadata = {
   description: "Dashboard for Product",
 };
 
-const DashboardLayout = async ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
+const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   const session = await getSession();
   if (!session) {
     redirect("/login");
