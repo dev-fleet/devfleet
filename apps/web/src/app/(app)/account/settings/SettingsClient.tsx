@@ -10,13 +10,6 @@ import { deleteAccount } from "@/actions/user";
 import { signOut } from "@/utils/auth-client";
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import {
   Avatar,
   AvatarFallback,
   AvatarImage,
@@ -88,47 +81,48 @@ export function SettingsClient() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Profile Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>
-            Your profile information from GitHub
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={user.image || ""} alt={user.name} />
-              <AvatarFallback className="text-lg">
-                {getNameInitials(user.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <p className="text-lg font-medium">{user.name}</p>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Profile</h1>
+        <p className="text-muted-foreground mt-1">
+          Your profile information from GitHub
+        </p>
+      </div>
 
-          <div className="rounded-lg border bg-muted/50 p-4">
+      <div className="space-y-6">
+        {/* Profile Info */}
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={user.image || ""} alt={user.name} />
+            <AvatarFallback className="text-lg">
+              {getNameInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <p className="text-lg font-medium">{user.name}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-muted/50 p-4">
+          <p className="text-sm text-muted-foreground">
+            Your profile information is managed through GitHub. To update your
+            name or avatar, please update your GitHub profile.
+          </p>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="space-y-3 pt-4 border-t">
+          <div>
+            <h2 className="text-lg font-semibold text-destructive">
+              Danger Zone
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Your profile information is managed through GitHub. To update your
-              name or avatar, please update your GitHub profile.
+              Irreversible actions that affect your account
             </p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Danger Zone */}
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
-          <CardDescription>
-            Irreversible actions that affect your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
           <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-4">
             <div className="space-y-1">
               <p className="font-medium">Delete Account</p>
@@ -170,8 +164,8 @@ export function SettingsClient() {
               </AlertDialogContent>
             </AlertDialog>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
