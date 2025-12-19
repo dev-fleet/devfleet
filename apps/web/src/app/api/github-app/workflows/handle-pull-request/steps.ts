@@ -8,6 +8,7 @@ import {
   pullRequests,
   prCheckRuns,
   agentTemplates,
+  organizationApiKeys,
   Severity,
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -34,7 +35,7 @@ import {
  * @returns The parsed ClaudeResult object
  * @throws Error if parsing fails or no result found
  */
-export function parseClaudeResult(stdout: string): ClaudeResult {
+function parseClaudeResult(stdout: string): ClaudeResult {
   const parsed = JSON.parse(stdout.trim());
 
   if (!Array.isArray(parsed)) {
@@ -168,10 +169,11 @@ export async function runAgent(
 ) {
   "use step";
 
-  // Get the repository details
+  // Get the repository details including organization ID
   const repo = await db
     .select({
       fullName: repositories.fullName,
+      ownerGhOrganizationId: repositories.ownerGhOrganizationId,
     })
     .from(repositories)
     .where(eq(repositories.id, repoId))
@@ -182,6 +184,31 @@ export async function runAgent(
   }
 
   const repoFullName = repo[0].fullName;
+  const orgId = repo[0].ownerGhOrganizationId;
+
+  // Try to get the organization's Anthropic API key
+  // The key is automatically decrypted by the Drizzle custom type
+  const orgApiKey = await db
+    .select({
+      encryptedKey: organizationApiKeys.encryptedKey,
+    })
+    .from(organizationApiKeys)
+    .where(
+      and(
+        eq(organizationApiKeys.ghOrganizationId, orgId),
+        eq(organizationApiKeys.provider, "anthropic")
+      )
+    )
+    .limit(1);
+
+  // Use org's API key if available, otherwise fall back to env key
+  const anthropicApiKey = orgApiKey[0]?.encryptedKey || env.ANTHROPIC_API_KEY;
+
+  if (!anthropicApiKey) {
+    throw new FatalError(
+      "No Anthropic API key configured. Please add an API key in Organization Settings."
+    );
+  }
 
   // Get GitHub App installation token
   const githubToken = await getGitHubAppInstallationAccessToken(installationId);
@@ -194,7 +221,7 @@ export async function runAgent(
     },
     {
       envs: {
-        ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
+        ANTHROPIC_API_KEY: anthropicApiKey,
       },
     }
   );

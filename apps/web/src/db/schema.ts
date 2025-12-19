@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 import { relations } from "drizzle-orm";
+import { encryptedText } from "@/db/encryption";
 
 const timestamps = {
   updatedAt: timestamp("updated_at", { mode: "date" })
@@ -40,6 +41,8 @@ const PR_CHECK_RUN_STATUSES = [
   "cancelled",
 ] as const;
 export const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+const LLM_BILLING_MODES = ["subscription", "byok"] as const;
+const API_KEY_PROVIDERS = ["anthropic"] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -137,11 +140,45 @@ export const ghOrganizations = pgTable(
     // Organizations install the Github App to give access to their repositories/prs
     githubAppInstallationId: text("github_app_installation_id"),
     githubAppAccessToken: text("github_app_access_token"),
+    // LLM billing mode: "subscription" (DevFleet manages) or "byok" (bring your own key)
+    llmBillingMode: text("llm_billing_mode", {
+      enum: LLM_BILLING_MODES,
+    })
+      .notNull()
+      .default("byok"),
     ...timestamps,
   },
   (table) => [
     uniqueIndex("gh_organizations_organization_id_uq").on(table.organizationId),
     index("gh_organizations_login_idx").on(table.login),
+  ]
+);
+
+export const organizationApiKeys = pgTable(
+  "organization_api_keys",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    ghOrganizationId: text("gh_organization_id")
+      .notNull()
+      .references(() => ghOrganizations.id, { onDelete: "cascade" }),
+    provider: text("provider", {
+      enum: API_KEY_PROVIDERS,
+    }).notNull(),
+    // Encrypted API key - automatically encrypted/decrypted by custom Drizzle type
+    encryptedKey: encryptedText("encrypted_key").notNull(),
+    // First few characters of the key for display (e.g., "sk-ant-...")
+    keyPrefix: text("key_prefix").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    // One key per provider per organization
+    uniqueIndex("organization_api_keys_org_provider_uq").on(
+      table.ghOrganizationId,
+      table.provider
+    ),
+    index("organization_api_keys_org_idx").on(table.ghOrganizationId),
   ]
 );
 
@@ -430,6 +467,25 @@ export const repoAgentsRelations = relations(repoAgents, ({ one }) => ({
   agent: one(agents, { fields: [repoAgents.agentId], references: [agents.id] }),
 }));
 
+export const ghOrganizationsRelations = relations(
+  ghOrganizations,
+  ({ many }) => ({
+    apiKeys: many(organizationApiKeys),
+    repositories: many(repositories),
+    agents: many(agents),
+  })
+);
+
+export const organizationApiKeysRelations = relations(
+  organizationApiKeys,
+  ({ one }) => ({
+    organization: one(ghOrganizations, {
+      fields: [organizationApiKeys.ghOrganizationId],
+      references: [ghOrganizations.id],
+    }),
+  })
+);
+
 // export const organizationRepositories = relations(
 //   organizations,
 //   ({ many }) => ({
@@ -503,6 +559,8 @@ export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 export type PrStatus = (typeof PR_STATUSES)[number];
 export type PrCheckRunStatus = (typeof PR_CHECK_RUN_STATUSES)[number];
 export type Severity = (typeof SEVERITIES)[number];
+export type LlmBillingMode = (typeof LLM_BILLING_MODES)[number];
+export type ApiKeyProvider = (typeof API_KEY_PROVIDERS)[number];
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -522,3 +580,5 @@ export type RepoAgent = typeof repoAgents.$inferSelect;
 export type NewRepoAgent = typeof repoAgents.$inferInsert;
 export type PrCheckRun = typeof prCheckRuns.$inferSelect;
 export type NewPrCheckRun = typeof prCheckRuns.$inferInsert;
+export type OrganizationApiKey = typeof organizationApiKeys.$inferSelect;
+export type NewOrganizationApiKey = typeof organizationApiKeys.$inferInsert;
