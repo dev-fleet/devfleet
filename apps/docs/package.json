@@ -10,27 +10,27 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@react-three/fiber": "9",
+    "@react-three/fiber": "^9.4.2",
     "@workspace/ui": "workspace:^",
     "next": "15.5.7",
     "nextra": "^4.6.1",
     "nextra-theme-docs": "^4.6.1",
-    "posthog-js": "^1.260.1",
+    "posthog-js": "^1.309.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "three": "^0.178.0",
-    "three-stdlib": "^2.36.0"
+    "three-stdlib": "^2.36.1"
   },
   "devDependencies": {
     "@types/mdx": "^2.0.13",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@types/three": "^0.178.1",
     "@workspace/eslint-config": "workspace:^",
     "@workspace/typescript-config": "workspace:^",
-    "eslint": "^9",
-    "pagefind": "^1.3.0",
-    "typescript": "^5"
+    "eslint": "^9.39.2",
+    "pagefind": "^1.4.0",
+    "typescript": "^5.9.3"
   }
 }

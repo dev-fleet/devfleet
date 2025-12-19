@@ -11,10 +11,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "tsx": "^4.20.6"
+    "tsx": "^4.21.0"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
-    "e2b": "^2.7.0"
+    "e2b": "^2.8.4"
   }
 }

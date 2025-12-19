@@ -11,7 +11,7 @@ import {
   type LlmBillingMode,
   type ApiKeyProvider,
 } from "@/db/schema";
-import { getApiKeyPrefix } from "@/utils/encryption";
+import { getApiKeyPrefix } from "@/db/encryption";
 
 async function getDefaultOrgId() {
   const session = await getSession();

@@ -18,10 +18,8 @@ export const metadata: Metadata = {
 
 const DashboardLayout = async ({
   children,
-  params,
 }: {
   children: ReactNode;
-  params: { orgSlug: string };
 }) => {
   const session = await getSession();
   if (!session) {

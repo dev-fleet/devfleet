@@ -16,8 +16,8 @@
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "prettier": "3.6.1",
-    "tsx": "^4.20.6",
+    "tsx": "^4.21.0",
     "turbo": "2.5.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   }
 }

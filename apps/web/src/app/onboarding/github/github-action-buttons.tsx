@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@workspace/ui/components/button";
 import { ChevronDown, Plus, RefreshCw } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { setActiveOrganization } from "@/actions/organization";
+import { setActiveOrganization, syncOrganizations } from "@/actions/organization";
 import { toast } from "sonner";
 import { env } from "@/env.mjs";
 import { Avatar, AvatarImage } from "@workspace/ui/components/avatar";
@@ -54,23 +54,13 @@ export function GitHubActionButtons() {
 
     setIsRefreshing(true);
     try {
-      // Call backend to sync organizations with GitHub
-      const response = await fetch("/api/organizations/sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const result = await syncOrganizations();
 
-      if (!response.ok) {
-        throw new Error(`Failed to sync organizations: ${response.statusText}`);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to sync organizations");
       }
 
-      const result = await response.json();
-
-      // Refresh local data
-      await mutate("/api/organizations");
-      await mutate("/api/me");
+      await mutate();
     } catch (error) {
       console.error("Error syncing organizations:", error);
       toast.error("Failed to sync organizations");
