@@ -3,15 +3,10 @@
 import { ChevronDown } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { setActiveOrganization } from "@/actions/organization";
-import { getNameInitials } from "@/utils/string";
 import { useSidebar } from "@workspace/ui/components/sidebar";
 import { toast } from "sonner";
-import { mutate } from "swr";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@workspace/ui/components/avatar";
+import { mutate as globalMutate } from "swr";
+import { Avatar, AvatarImage } from "@workspace/ui/components/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +20,12 @@ import {
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar";
 import { env } from "@/env.mjs";
+import { useRouter } from "next/navigation";
 
 const DICEBEAR_AVATAR_URL = "https://api.dicebear.com/9.x/initials/svg?seed=";
 
 export function OrganizationSwitcher() {
+  const router = useRouter();
   const { data: user, isLoading: isUserLoading, mutate } = useUser();
   const { isMobile } = useSidebar();
 
@@ -44,8 +41,10 @@ export function OrganizationSwitcher() {
     try {
       const result = await setActiveOrganization(orgId);
       if (result.success) {
-        // Revalidate the user data to get the updated active organization
-        mutate();
+        // Navigate to dashboard to refresh data with new organization
+        router.push("/dashboard");
+        mutate(); // Revalidate the user data to get the updated active organization
+        await globalMutate("/api/dashboard/stats"); // Invalidate dashboard stats cache to force refetch with new organization
         toast.success(`Switched to ${org.displayName || org.login}`);
       } else {
         toast.error(result.message || "Failed to switch organization");
