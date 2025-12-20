@@ -187,7 +187,8 @@ export function LLMSettings() {
             <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-4">
               <div className="space-y-1">
                 <p className="text-sm font-mono">
-                  {existingAnthropicKey.keyPrefix}
+                  {existingAnthropicKey.keyPrefix}...
+                  {existingAnthropicKey.keySuffix}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Added{" "}

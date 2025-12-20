@@ -40,6 +40,7 @@ async function getOrganizationSettings(userId: string) {
       id: organizationApiKeys.id,
       provider: organizationApiKeys.provider,
       keyPrefix: organizationApiKeys.keyPrefix,
+      keySuffix: organizationApiKeys.keySuffix,
       createdAt: organizationApiKeys.createdAt,
       updatedAt: organizationApiKeys.updatedAt,
     })
@@ -61,4 +62,3 @@ export const GET = withAuth(async (request) => {
   const data = await getOrganizationSettings(userId);
   return NextResponse.json(data);
 });
-

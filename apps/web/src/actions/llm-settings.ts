@@ -11,7 +11,7 @@ import {
   type LlmBillingMode,
   type ApiKeyProvider,
 } from "@/db/schema";
-import { getApiKeyPrefix } from "@/db/encryption";
+import { getApiKeyPrefixAndSuffix } from "@/db/encryption";
 
 async function getDefaultOrgId() {
   const session = await getSession();
@@ -61,8 +61,11 @@ export async function saveApiKey(provider: ApiKeyProvider, apiKey: string) {
     }
   }
 
-  // Get the prefix for display purposes
-  const keyPrefix = getApiKeyPrefix(apiKey);
+  // Get the prefix and suffix for display purposes
+  const { prefix: keyPrefix, suffix: keySuffix } = getApiKeyPrefixAndSuffix(
+    apiKey,
+    provider
+  );
 
   // Upsert the API key (update if exists, insert if not)
   const existing = await db
@@ -83,6 +86,7 @@ export async function saveApiKey(provider: ApiKeyProvider, apiKey: string) {
       .set({
         encryptedKey: apiKey, // Will be encrypted by the custom type
         keyPrefix,
+        keySuffix,
       })
       .where(eq(organizationApiKeys.id, existing[0].id));
   } else {
@@ -92,6 +96,7 @@ export async function saveApiKey(provider: ApiKeyProvider, apiKey: string) {
       provider,
       encryptedKey: apiKey, // Will be encrypted by the custom type
       keyPrefix,
+      keySuffix,
     });
   }
 

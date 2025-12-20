@@ -31,7 +31,7 @@ const timestamps = {
  *************************************************************************/
 
 // const TASK_STATUSES = ["ACTIVE", "PAUSED", "TERMINATED"] as const;
-const ONBOARDING_STEPS = ["github", "agent", "completed"] as const;
+const ONBOARDING_STEPS = ["github", "llm", "agent", "completed"] as const;
 const PR_STATUSES = ["open", "closed", "merged", "draft"] as const;
 const PR_CHECK_RUN_STATUSES = [
   "pass",
@@ -42,7 +42,7 @@ const PR_CHECK_RUN_STATUSES = [
 ] as const;
 export const SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 const LLM_BILLING_MODES = ["subscription", "byok"] as const;
-const API_KEY_PROVIDERS = ["anthropic"] as const;
+export const API_KEY_PROVIDERS = ["anthropic"] as const;
 // const PR_STATUSES = [
 //   "NOT_CREATED",
 //   "DRAFT",
@@ -170,6 +170,8 @@ export const organizationApiKeys = pgTable(
     encryptedKey: encryptedText("encrypted_key").notNull(),
     // First few characters of the key for display (e.g., "sk-ant-...")
     keyPrefix: text("key_prefix").notNull(),
+    // Last few characters of the key for display (e.g., "...abc")
+    keySuffix: text("key_suffix").notNull(),
     ...timestamps,
   },
   (table) => [

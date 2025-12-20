@@ -1,13 +1,13 @@
 "use client";
 
-import { Check, Container, Bot } from "lucide-react";
+import { Check, Container, Bot, Key } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentOnboardingStep } from "@/actions/onboarding";
 import { IconGithubLogo } from "@workspace/ui/components/github-logo";
 
-export type OnboardingStep = "github" | "environment" | "agent" | "completed";
+export type OnboardingStep = "github" | "llm" | "agent" | "completed";
 
 interface Step {
   id: OnboardingStep;
@@ -22,6 +22,12 @@ const steps: Step[] = [
     title: "Connect GitHub",
     icon: IconGithubLogo,
     href: "/onboarding/github",
+  },
+  {
+    id: "llm",
+    title: "Add API Key",
+    icon: Key,
+    href: "/onboarding/llm",
   },
   {
     id: "agent",
@@ -63,6 +69,7 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
     dbCurrentStep ||
     (() => {
       if (pathname.includes("/github")) return "github";
+      if (pathname.includes("/llm")) return "llm";
       if (pathname.includes("/agent")) return "agent";
       return "github";
     })();
@@ -70,7 +77,7 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
   const getStepStatus = (
     stepId: OnboardingStep
   ): "completed" | "current" | "upcoming" => {
-    const stepOrder = ["github", "agent"];
+    const stepOrder = ["github", "llm", "agent"];
     const currentIndex = stepOrder.indexOf(activeStep);
     const stepIndex = stepOrder.indexOf(stepId);
 

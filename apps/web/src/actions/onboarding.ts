@@ -2,9 +2,10 @@
 
 import { getSession } from "@/utils/auth";
 import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { users, organizationApiKeys } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { getApiKeyPrefixAndSuffix } from "@/db/encryption";
 
 export async function getCurrentOnboardingStep() {
   const session = await getSession();
@@ -42,4 +43,99 @@ export async function completeOnboarding() {
     .where(eq(users.id, session.user.id));
 
   redirect("/dashboard");
+}
+
+/**
+ * Save an Anthropic API key and advance from llm step to agent step.
+ * Used during onboarding only.
+ */
+export async function saveApiKeyAndAdvanceOnboarding(apiKey: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const session = await getSession();
+
+  if (!session) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Validate API key format
+  if (!apiKey.startsWith("sk-ant-")) {
+    return {
+      success: false,
+      error: "Invalid Anthropic API key format. Key should start with 'sk-ant-'",
+    };
+  }
+
+  // Get user with their default organization
+  const user = await db
+    .select({
+      id: users.id,
+      onboardingStep: users.onboardingStep,
+      defaultGhOrganizationId: users.defaultGhOrganizationId,
+    })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+
+  if (!user[0]) {
+    return { success: false, error: "User not found" };
+  }
+
+  const orgId = user[0].defaultGhOrganizationId;
+  if (!orgId) {
+    return {
+      success: false,
+      error: "No organization set. Please complete GitHub setup first.",
+    };
+  }
+
+  // Get prefix and suffix for display
+  const { prefix: keyPrefix, suffix: keySuffix } = getApiKeyPrefixAndSuffix(
+    apiKey,
+    "anthropic"
+  );
+
+  // Check if key already exists
+  const existing = await db
+    .select({ id: organizationApiKeys.id })
+    .from(organizationApiKeys)
+    .where(
+      and(
+        eq(organizationApiKeys.ghOrganizationId, orgId),
+        eq(organizationApiKeys.provider, "anthropic")
+      )
+    )
+    .limit(1);
+
+  if (existing[0]) {
+    // Update existing key
+    await db
+      .update(organizationApiKeys)
+      .set({
+        encryptedKey: apiKey,
+        keyPrefix,
+        keySuffix,
+      })
+      .where(eq(organizationApiKeys.id, existing[0].id));
+  } else {
+    // Insert new key
+    await db.insert(organizationApiKeys).values({
+      ghOrganizationId: orgId,
+      provider: "anthropic",
+      encryptedKey: apiKey,
+      keyPrefix,
+      keySuffix,
+    });
+  }
+
+  // Advance onboarding step from llm to agent
+  if (user[0].onboardingStep === "llm") {
+    await db
+      .update(users)
+      .set({ onboardingStep: "agent" })
+      .where(eq(users.id, session.user.id));
+  }
+
+  return { success: true };
 }

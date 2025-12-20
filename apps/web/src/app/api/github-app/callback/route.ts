@@ -112,19 +112,19 @@ export const GET = withAuth(async (req) => {
       // The installation is still saved successfully
     }
 
-    // Check if user's current onboarding step is 'github' and update to 'agent'
+    // Check if user's current onboarding step is 'github' and update to 'llm'
     if (user[0]?.onboardingStep === "github") {
       await db
         .update(users)
         .set({
-          onboardingStep: "agent",
+          onboardingStep: "llm",
           updatedAt: new Date(),
         })
         .where(eq(users.id, user[0]?.id));
     }
 
-    // Redirects to dashboard
-    return NextResponse.redirect(new URL(`${env.NEXT_PUBLIC_URL}/dashboard`));
+    // Redirect to onboarding flow (will auto-redirect to current step)
+    return NextResponse.redirect(new URL(`${env.NEXT_PUBLIC_URL}/onboarding`));
   } catch (error: unknown) {
     console.error(
       "Error during verification:",

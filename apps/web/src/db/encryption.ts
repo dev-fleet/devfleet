@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { customType } from "drizzle-orm/pg-core";
 import { env } from "@/env.mjs";
+import { API_KEY_PROVIDERS, type ApiKeyProvider } from "@/db/schema";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // GCM standard IV length
@@ -104,12 +105,25 @@ export const encryptedText = customType<{ data: string; driverData: string }>({
 });
 
 /**
- * Get the prefix of an API key for display purposes
- * e.g., "sk-ant-api03-..." -> "sk-ant-..."
+ * Get the prefix and suffix of an API key for display purposes
+ * For anthropic: first 16 chars as prefix, last 4 as suffix
+ * For other providers: first 7 chars as prefix, last 4 as suffix
  */
-export function getApiKeyPrefix(apiKey: string): string {
-  if (!apiKey) return "";
-  // Show first 7 chars + "..." for display
-  if (apiKey.length <= 10) return apiKey.substring(0, 4) + "...";
-  return apiKey.substring(0, 7) + "...";
+export function getApiKeyPrefixAndSuffix(
+  apiKey: string,
+  provider: ApiKeyProvider
+): { prefix: string; suffix: string } {
+  if (!apiKey) return { prefix: "", suffix: "" };
+
+  if (provider === API_KEY_PROVIDERS[0]) {
+    // Anthropic keys: first 16 chars as prefix, last 4 as suffix
+    const prefix = apiKey.length > 16 ? apiKey.substring(0, 16) : apiKey;
+    const suffix = apiKey.length > 4 ? apiKey.slice(-4) : "";
+    return { prefix, suffix };
+  }
+
+  // Default for other providers: first 7 chars as prefix, last 4 as suffix
+  const prefix = apiKey.length > 7 ? apiKey.substring(0, 7) : apiKey;
+  const suffix = apiKey.length > 4 ? apiKey.slice(-4) : "";
+  return { prefix, suffix };
 }
