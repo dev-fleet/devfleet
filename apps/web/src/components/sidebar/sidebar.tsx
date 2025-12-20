@@ -23,6 +23,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@workspace/ui/components/sidebar";
+import { IconGithubLogo } from "@workspace/ui/components/github-logo";
 // import { SidebarOnboarding } from "@/components/app-sidebar-onboarding";
 
 export const AppSidebar = ({
@@ -65,16 +66,15 @@ export const AppSidebar = ({
         title: "Support",
         items: [
           {
-            title: "Feedback",
-            id: "feedback-button",
-            isButton: true,
-            icon: Send,
-            url: "#",
-          },
-          {
             title: "Documentation",
             url: "https://www.devfleet.ai/docs",
             icon: BookText,
+            isExternal: true,
+          },
+          {
+            title: "Github",
+            icon: IconGithubLogo,
+            url: "https://github.com/dev-fleet/devfleet",
             isExternal: true,
           },
           {
