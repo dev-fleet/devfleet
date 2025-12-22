@@ -299,7 +299,18 @@ export async function syncUserOrgsAndMemberships(
             : ("MEMBER" as const),
       }));
 
-      await tx.insert(userGhOrganizationMemberships).values(rows);
+      await tx
+        .insert(userGhOrganizationMemberships)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: [
+            userGhOrganizationMemberships.userId,
+            userGhOrganizationMemberships.ghOrganizationId,
+          ],
+          set: buildConflictUpdateColumns(userGhOrganizationMemberships, [
+            "role",
+          ]),
+        });
     });
 
     // If the user doesn't have a default GitHub organization yet,
