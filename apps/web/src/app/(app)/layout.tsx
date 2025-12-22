@@ -8,6 +8,7 @@ import {
   SidebarInset,
 } from "@workspace/ui/components/sidebar";
 import { AppSidebar } from "@/components/sidebar/sidebar";
+import { GitHubDisconnectionBanner } from "@/components/github-disconnection-banner";
 import type { Metadata } from "next";
 import { getSession } from "@/utils/auth";
 
@@ -36,7 +37,10 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <GitHubDisconnectionBanner />
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 };

@@ -1,6 +1,6 @@
 import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
-import { prCheckRuns, repositories, users } from "@/db/schema";
+import { prCheckRuns, repositories, users, ghOrganizations } from "@/db/schema";
 import { eq, and, gte, sql, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { subDays, format } from "date-fns";
@@ -21,6 +21,19 @@ async function getDashboardStats(userId: string) {
   }
 
   const orgId = user[0].defaultGhOrganizationId;
+
+  // Check GitHub connection status
+  const org = await db
+    .select({
+      githubAppConnectionStatus: ghOrganizations.githubAppConnectionStatus,
+      githubAppDisconnectedReason: ghOrganizations.githubAppDisconnectedReason,
+    })
+    .from(ghOrganizations)
+    .where(eq(ghOrganizations.id, orgId))
+    .limit(1);
+
+  const isGitHubDisconnected = org[0]?.githubAppConnectionStatus === "disconnected";
+
   const thirtyDaysAgo = subDays(new Date(), 30);
 
   // Fetch runs for the last 30 days for repositories in this organization
@@ -91,6 +104,10 @@ async function getDashboardStats(userId: string) {
     totalCost,
     totalTokens,
     chartData,
+    metadata: {
+      isGitHubDisconnected,
+      disconnectedReason: org[0]?.githubAppDisconnectedReason,
+    },
   };
 }
 

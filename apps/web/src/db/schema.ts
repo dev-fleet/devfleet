@@ -140,6 +140,16 @@ export const ghOrganizations = pgTable(
     // Organizations install the Github App to give access to their repositories/prs
     githubAppInstallationId: text("github_app_installation_id"),
     githubAppAccessToken: text("github_app_access_token"),
+    // GitHub App connection status tracking
+    githubAppConnectionStatus: text("github_app_connection_status", {
+      enum: ["never_connected", "connected", "disconnected"],
+    })
+      .notNull()
+      .default("never_connected"),
+    githubAppDisconnectedAt: timestamp("github_app_disconnected_at"),
+    githubAppDisconnectedReason: text("github_app_disconnected_reason", {
+      enum: ["deleted", "suspended", "permission_revoked"],
+    }),
     // LLM billing mode: "subscription" (DevFleet manages) or "byok" (bring your own key)
     llmBillingMode: text("llm_billing_mode", {
       enum: LLM_BILLING_MODES,
@@ -366,6 +376,10 @@ export const repoAgents = pgTable(
       .notNull()
       .references(() => agents.id, { onDelete: "cascade" }),
     enabled: boolean("enabled").notNull().default(true),
+    // Track if agent was disabled due to GitHub disconnection
+    disabledDueToGithubDisconnect: boolean("disabled_due_to_github_disconnect")
+      .notNull()
+      .default(false),
     ...timestamps,
   },
   (table) => [

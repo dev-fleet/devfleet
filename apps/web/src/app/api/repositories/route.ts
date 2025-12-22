@@ -1,6 +1,12 @@
 import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
-import { repositories, users, pullRequests, repoAgents } from "@/db/schema";
+import {
+  repositories,
+  users,
+  pullRequests,
+  repoAgents,
+  ghOrganizations,
+} from "@/db/schema";
 import { eq, and, desc, count, ilike, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -26,6 +32,17 @@ async function getRepositories(
   }
 
   const orgId = user[0].defaultGhOrganizationId;
+
+  // Check if GitHub is disconnected
+  const org = await db
+    .select({
+      githubAppConnectionStatus: ghOrganizations.githubAppConnectionStatus,
+    })
+    .from(ghOrganizations)
+    .where(eq(ghOrganizations.id, orgId))
+    .limit(1);
+
+  const isGitHubDisconnected = org[0]?.githubAppConnectionStatus === "disconnected";
 
   // Build where conditions
   const whereConditions = search
@@ -87,6 +104,9 @@ async function getRepositories(
       limit,
       total,
       totalPages: Math.ceil(total / limit),
+    },
+    metadata: {
+      isGitHubDisconnected,
     },
   };
 }

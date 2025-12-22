@@ -6,6 +6,10 @@ import { handlePullRequest } from "../workflows/handle-pull-request";
 import type { PullRequestOpenedOrSynchronizePayload } from "../workflows/handle-pull-request";
 import { storePullRequestFromWebhook } from "@/utils/github-app/pull-requests";
 import { hasActiveAgentsForRepository } from "@/utils/github-app/agents";
+import {
+  handleInstallationRemoval,
+  handleInstallationReconnection,
+} from "@/utils/github-app/installation";
 
 const handler = async (request: NextRequest) => {
   const signature = request.headers.get("x-hub-signature-256");
@@ -35,6 +39,28 @@ const handler = async (request: NextRequest) => {
   });
   app.webhooks.on("installation_repositories.removed", async ({ payload }) => {
     console.log("Installation repositories removed:", payload);
+  });
+
+  // Installation deletion/suspension events
+  app.webhooks.on("installation.deleted", async ({ payload }) => {
+    console.log("GitHub App installation deleted:", payload);
+    await handleInstallationRemoval(
+      payload.installation.id.toString(),
+      "deleted"
+    );
+  });
+
+  app.webhooks.on("installation.suspend", async ({ payload }) => {
+    console.log("GitHub App installation suspended:", payload);
+    await handleInstallationRemoval(
+      payload.installation.id.toString(),
+      "suspended"
+    );
+  });
+
+  app.webhooks.on("installation.unsuspend", async ({ payload }) => {
+    console.log("GitHub App installation unsuspended:", payload);
+    await handleInstallationReconnection(payload.installation.id.toString());
   });
 
   // Issue events

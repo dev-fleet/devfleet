@@ -4,8 +4,8 @@ import { getSession } from "@/utils/auth";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { Octokit, OAuthApp } from "octokit";
-import { ghOrganizations, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { ghOrganizations, users, repoAgents } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { syncRepositoriesFromInstallation } from "@/utils/github-app/repositories";
 import { withAuth } from "@/utils/middleware";
 
@@ -47,9 +47,14 @@ export const GET = withAuth(async (req) => {
     .where(eq(ghOrganizations.id, activeOrganizationId))
     .limit(1);
 
+  // Detect reconnection scenario
+  const isReconnection = organization[0]?.githubAppConnectionStatus === "disconnected";
+
+  // Allow reconnection if disconnected, but block if already connected
   if (
-    organization[0]?.githubAppInstallationId ||
-    organization[0]?.githubAppAccessToken
+    (organization[0]?.githubAppInstallationId ||
+      organization[0]?.githubAppAccessToken) &&
+    organization[0]?.githubAppConnectionStatus === "connected"
   ) {
     return NextResponse.json(
       { message: "GitHub is already connected to this organization" },
@@ -96,9 +101,30 @@ export const GET = withAuth(async (req) => {
       .update(ghOrganizations)
       .set({
         githubAppInstallationId: installationId,
+        // Set connection status to connected
+        githubAppConnectionStatus: "connected",
+        githubAppDisconnectedAt: null,
+        githubAppDisconnectedReason: null,
         updatedAt: new Date(),
       })
       .where(eq(ghOrganizations.id, activeOrganizationId));
+
+    // Re-enable agents that were disabled due to GitHub disconnection
+    if (isReconnection) {
+      await db
+        .update(repoAgents)
+        .set({
+          enabled: true,
+          disabledDueToGithubDisconnect: false,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(repoAgents.ownerGhOrganizationId, activeOrganizationId),
+            eq(repoAgents.disabledDueToGithubDisconnect, true)
+          )
+        );
+    }
 
     // Fetch all repositories the GitHub app has access to and save them to database
     const fetchResult = await syncRepositoriesFromInstallation(
@@ -123,8 +149,12 @@ export const GET = withAuth(async (req) => {
         .where(eq(users.id, user[0]?.id));
     }
 
-    // Redirect to onboarding flow (will auto-redirect to current step)
-    return NextResponse.redirect(new URL(`${env.NEXT_PUBLIC_URL}/onboarding`));
+    // Redirect appropriately based on whether this is a reconnection or new installation
+    const redirectUrl = isReconnection
+      ? `${env.NEXT_PUBLIC_URL}/dashboard`
+      : `${env.NEXT_PUBLIC_URL}/onboarding`;
+
+    return NextResponse.redirect(new URL(redirectUrl));
   } catch (error: unknown) {
     console.error(
       "Error during verification:",
