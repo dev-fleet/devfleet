@@ -31,7 +31,7 @@ const timestamps = {
  *************************************************************************/
 
 // const TASK_STATUSES = ["ACTIVE", "PAUSED", "TERMINATED"] as const;
-const ONBOARDING_STEPS = ["github", "llm", "agent", "completed"] as const;
+const ONBOARDING_STEPS = ["github", "agent", "llm", "completed"] as const;
 const PR_STATUSES = ["open", "closed", "merged", "draft"] as const;
 const PR_CHECK_RUN_STATUSES = [
   "pass",

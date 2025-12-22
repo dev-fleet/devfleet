@@ -7,7 +7,7 @@ import {
 } from "@workspace/ui/components/card";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
-import { completeOnboarding } from "@/actions/onboarding";
+import { advanceToLlmStep } from "@/actions/onboarding";
 import { Bot } from "lucide-react";
 
 export default function AgentOnboardingPage() {
@@ -34,7 +34,7 @@ export default function AgentOnboardingPage() {
 
       {/* Skip button */}
       <div className="flex justify-end">
-        <form action={completeOnboarding}>
+        <form action={advanceToLlmStep}>
           <Button type="submit" variant="ghost">
             Skip this step
           </Button>

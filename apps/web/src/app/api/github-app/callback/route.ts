@@ -138,12 +138,12 @@ export const GET = withAuth(async (req) => {
       // The installation is still saved successfully
     }
 
-    // Check if user's current onboarding step is 'github' and update to 'llm'
+    // Check if user's current onboarding step is 'github' and update to 'agent'
     if (user[0]?.onboardingStep === "github") {
       await db
         .update(users)
         .set({
-          onboardingStep: "llm",
+          onboardingStep: "agent",
           updatedAt: new Date(),
         })
         .where(eq(users.id, user[0]?.id));

@@ -46,8 +46,27 @@ export async function completeOnboarding() {
 }
 
 /**
- * Save an Anthropic API key and advance from llm step to agent step.
- * Used during onboarding only.
+ * Advance from agent step to llm step.
+ * Used during onboarding when skipping agent configuration.
+ */
+export async function advanceToLlmStep() {
+  const session = await getSession();
+
+  if (!session) {
+    throw new Error("No session found");
+  }
+
+  await db
+    .update(users)
+    .set({ onboardingStep: "llm" })
+    .where(eq(users.id, session.user.id));
+
+  redirect("/onboarding/llm");
+}
+
+/**
+ * Save an Anthropic API key and complete onboarding.
+ * Used during onboarding only (llm is the final step).
  */
 export async function saveApiKeyAndAdvanceOnboarding(apiKey: string): Promise<{
   success: boolean;
@@ -129,11 +148,11 @@ export async function saveApiKeyAndAdvanceOnboarding(apiKey: string): Promise<{
     });
   }
 
-  // Advance onboarding step from llm to agent
+  // Complete onboarding (llm is the final step)
   if (user[0].onboardingStep === "llm") {
     await db
       .update(users)
-      .set({ onboardingStep: "agent" })
+      .set({ onboardingStep: "completed", onboardingCompletedAt: new Date() })
       .where(eq(users.id, session.user.id));
   }
 

@@ -29,7 +29,7 @@ export function OnboardingApiKeyForm() {
 
       if (result.success) {
         toast.success("API key saved successfully");
-        router.push("/onboarding/agent");
+        router.push("/dashboard");
       } else {
         toast.error(result.error || "Failed to save API key");
       }

@@ -24,16 +24,16 @@ const steps: Step[] = [
     href: "/onboarding/github",
   },
   {
-    id: "llm",
-    title: "Add API Key",
-    icon: Key,
-    href: "/onboarding/llm",
-  },
-  {
     id: "agent",
     title: "Configure Agent",
     icon: Bot,
     href: "/onboarding/agent",
+  },
+  {
+    id: "llm",
+    title: "Add API Key",
+    icon: Key,
+    href: "/onboarding/llm",
   },
 ];
 
@@ -77,7 +77,7 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
   const getStepStatus = (
     stepId: OnboardingStep
   ): "completed" | "current" | "upcoming" => {
-    const stepOrder = ["github", "llm", "agent"];
+    const stepOrder = ["github", "agent", "llm"];
     const currentIndex = stepOrder.indexOf(activeStep);
     const stepIndex = stepOrder.indexOf(stepId);
 
