@@ -1,11 +1,12 @@
 "use client";
 
-import { Check, Container, Bot, Key } from "lucide-react";
+import { Check, Bot } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getCurrentOnboardingStep } from "@/actions/onboarding";
 import { IconGithubLogo } from "@workspace/ui/components/github-logo";
+import { IconClaude } from "@workspace/ui/components/claude-icon";
 
 export type OnboardingStep = "github" | "llm" | "agent" | "completed";
 
@@ -32,7 +33,7 @@ const steps: Step[] = [
   {
     id: "llm",
     title: "Add API Key",
-    icon: Key,
+    icon: IconClaude,
     href: "/onboarding/llm",
   },
 ];
