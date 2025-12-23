@@ -57,8 +57,10 @@ async function getRepository(repoId: string) {
 export async function addAgentToRepository(repoId: string, agentId: string) {
   const orgId = await getDefaultOrgId();
 
-  // Verify repo and agent belong to org
+  // Verify repo belongs to user's org (throws if not found)
   await getRepository(repoId);
+
+  // Verify agent belongs to user's org
   const agent = await db
     .select()
     .from(agents)
@@ -70,14 +72,17 @@ export async function addAgentToRepository(repoId: string, agentId: string) {
   }
 
   // Insert the new repo agent
-  await db.insert(repoAgents).values({
-    ownerGhOrganizationId: orgId,
-    repoId,
-    agentId,
-    enabled: true,
-  });
+  const [inserted] = await db
+    .insert(repoAgents)
+    .values({
+      ownerGhOrganizationId: orgId,
+      repoId,
+      agentId,
+      enabled: true,
+    })
+    .returning({ id: repoAgents.id });
 
-  return { success: true };
+  return { success: true, repoAgentId: inserted!.id };
 }
 
 /**

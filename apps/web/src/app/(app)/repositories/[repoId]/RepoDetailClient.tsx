@@ -15,8 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import { AddAgentDialog } from "./add-agent-dialog";
-import { AgentsList } from "./agents-list";
+import { AgentsToggleList } from "./agents-toggle-list";
 import { useRepository } from "@/hooks/useRepository";
 import { useRepositoryAgents } from "@/hooks/useRepositoryAgents";
 import { useRepositoryPullRequests } from "@/hooks/useRepositoryPullRequests";
@@ -100,36 +99,10 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
 
         <Separator />
 
-        {/* Active Agents */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Active Agents</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage agents that run on PRs for this repository
-              </p>
-            </div>
-            <AddAgentDialog
-              repoId={repoId}
-              orgAgents={orgAgents}
-              currentAgentIds={repoAgents.map((ra) => ra.agentId)}
-            />
-          </div>
-          {repoAgents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No agents configured for this repository
-            </div>
-          ) : (
-            <AgentsList agents={repoAgents} />
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Recent PRs */}
+        {/* Last 5 PRs */}
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold">Recent Pull Requests</h2>
+            <h2 className="text-lg font-semibold">Last 5 Pull Requests</h2>
             <p className="text-sm text-muted-foreground">
               Latest pull requests for this repository
             </p>
@@ -151,7 +124,7 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pullRequests.map((pr) => (
+                {pullRequests.slice(0, 5).map((pr) => (
                   <TableRow key={pr.id}>
                     <TableCell>
                       <Link
@@ -224,6 +197,23 @@ export function RepoDetailClient({ repoId }: { repoId: string }) {
               </TableBody>
             </Table>
           )}
+        </div>
+
+        <Separator />
+
+        {/* Agents */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">Agents</h2>
+            <p className="text-sm text-muted-foreground">
+              Toggle agents to add or remove them from this repository
+            </p>
+          </div>
+          <AgentsToggleList
+            repoId={repoId}
+            orgAgents={orgAgents}
+            repoAgents={repoAgents}
+          />
         </div>
       </div>
     </>
