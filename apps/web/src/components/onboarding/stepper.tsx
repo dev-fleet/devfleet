@@ -47,7 +47,7 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
     null
   );
 
-  // Fetch current step from database
+  // Fetch current step from database whenever pathname changes
   useEffect(() => {
     const fetchCurrentStep = async () => {
       try {
@@ -61,7 +61,7 @@ export function OnboardingStepper({ currentStep }: OnboardingStepperProps) {
     };
 
     fetchCurrentStep();
-  }, []);
+  }, [pathname]);
 
   // Determine current step: use props, then database, then fallback to URL
   const activeStep =

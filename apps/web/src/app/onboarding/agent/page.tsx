@@ -1,16 +1,36 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import { CheckCircle2 } from "lucide-react";
+import { Card, CardContent } from "@workspace/ui/components/card";
 import { Button } from "@workspace/ui/components/button";
 import { advanceToLlmStep } from "@/actions/onboarding";
 import { Bot } from "lucide-react";
+import { AgentSelection } from "@/components/onboarding/agent-selection";
+import { db } from "@/db";
+import { agentTemplates } from "@/db/schema";
+import { inArray } from "drizzle-orm";
 
-export default function AgentOnboardingPage() {
+// Template IDs to show during onboarding
+const ONBOARDING_TEMPLATE_IDS = [
+  "jw1x0dbesgp1pulnuw8sc0m8",
+  "hlmn6nnadu80n4uyczqnt24i",
+  "w6pp8h9r7ud0ma2hbxlgtwt6",
+];
+
+async function getOnboardingTemplates() {
+  const templates = await db
+    .select()
+    .from(agentTemplates)
+    .where(inArray(agentTemplates.id, ONBOARDING_TEMPLATE_IDS));
+
+  // Sort by the order defined in ONBOARDING_TEMPLATE_IDS
+  return templates.sort(
+    (a, b) =>
+      ONBOARDING_TEMPLATE_IDS.indexOf(a.id) -
+      ONBOARDING_TEMPLATE_IDS.indexOf(b.id)
+  );
+}
+
+export default async function AgentOnboardingPage() {
+  const templates = await getOnboardingTemplates();
+
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
@@ -20,15 +40,14 @@ export default function AgentOnboardingPage() {
         </div>
         <h1 className="text-3xl font-bold">Create Your First Agent</h1>
         <p className="text-lg text-muted-foreground">
-          Use our agent templates to create your first agent.
+          Choose an agent template to get started with repository automation.
         </p>
       </div>
 
-      {/* Main card */}
+      {/* Main card with agent selection */}
       <Card className="mt-18">
-        <CardContent className="space-y-6">
-          {/* Benefits list */}
-          <div className="space-y-4">Coming Soon...</div>
+        <CardContent>
+          <AgentSelection templates={templates} />
         </CardContent>
       </Card>
 

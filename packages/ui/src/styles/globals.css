@@ -131,3 +131,97 @@
     cursor: pointer;
   }
 }
+
+/* Custom keyframes */
+/* Workflow animation keyframes - 7s cycle */
+/* Uses outline for thick border effect - doesn't affect layout */
+
+/* Box 1: active 0-28.57% */
+@keyframes workflow-box1 {
+  0%,
+  5% {
+    box-shadow: 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+  10% {
+    box-shadow: 0 0 20px 4px color-mix(in oklch, var(--primary) 40%, transparent);
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+  25% {
+    box-shadow: 0 0 20px 4px color-mix(in oklch, var(--primary) 40%, transparent);
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+  28.57%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+}
+
+/* Box 2: active 35.71-64.29% */
+@keyframes workflow-box2 {
+  0%,
+  35.71% {
+    box-shadow: 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+  40% {
+    box-shadow: 0 0 20px 4px color-mix(in oklch, var(--primary) 40%, transparent);
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+  60% {
+    box-shadow: 0 0 20px 4px color-mix(in oklch, var(--primary) 40%, transparent);
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+  64.29%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+}
+
+/* Box 3: active 71.43-100% */
+@keyframes workflow-box3 {
+  0%,
+  71.43% {
+    box-shadow: 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+  76% {
+    box-shadow: 0 0 20px 4px color-mix(in oklch, var(--primary) 40%, transparent);
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+  95% {
+    box-shadow: 0 0 20px 4px color-mix(in oklch, var(--primary) 40%, transparent);
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    outline: 2px solid transparent;
+    outline-offset: -2px;
+  }
+}
+
+/* Workflow animation utilities */
+@utility animate-workflow-box1 {
+  animation: workflow-box1 7s ease-in-out infinite;
+}
+
+@utility animate-workflow-box2 {
+  animation: workflow-box2 7s ease-in-out infinite;
+}
+
+@utility animate-workflow-box3 {
+  animation: workflow-box3 7s ease-in-out infinite;
+}

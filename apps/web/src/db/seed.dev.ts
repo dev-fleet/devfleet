@@ -1,16 +1,14 @@
 import { env } from "@/env.mjs";
 import { db } from "./index";
 import { agentTemplates } from "./schema";
-import { createId } from "@paralleldrive/cuid2";
 
 /**
  * Seed initial agent templates
  */
 export async function seedAgentTemplates() {
   // TypeScript Agent Template
-  const tsAgentId = createId();
   await db.insert(agentTemplates).values({
-    id: tsAgentId,
+    id: "jw1x0dbesgp1pulnuw8sc0m8",
     name: "TypeScript Agent",
     slug: "typescript",
     description:
@@ -34,9 +32,8 @@ Focus areas:
   });
 
   // Security Agent Template
-  const secAgentId = createId();
   await db.insert(agentTemplates).values({
-    id: secAgentId,
+    id: "hlmn6nnadu80n4uyczqnt24i",
     name: "Security Agent",
     slug: "security",
     description:
@@ -63,9 +60,8 @@ Focus areas:
   });
 
   // Spam Agent Template
-  const spamAgentId = createId();
   await db.insert(agentTemplates).values({
-    id: spamAgentId,
+    id: "w6pp8h9r7ud0ma2hbxlgtwt6",
     name: "No Slop Agent",
     slug: "no-slop",
     description:
