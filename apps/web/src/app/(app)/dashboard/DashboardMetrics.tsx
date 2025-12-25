@@ -16,6 +16,39 @@ import {
 import { Activity, CheckCircle, DollarSign, Cpu } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
+function OnboardingTutorial() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="max-w-2xl w-full space-y-6 text-center">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Welcome to DevFleet!
+          </h2>
+          <p className="text-muted-foreground">
+            Get started by watching our quick tutorial to learn how to set up
+            your first AI-powered code review.
+          </p>
+        </div>
+
+        <div className="relative aspect-video w-full rounded-lg overflow-hidden border bg-muted/50">
+          <video
+            src="/videos/get-started.mp4"
+            muted
+            autoPlay
+            loop
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Once you connect an agent to a repository and create your first pull
+          request, your activity metrics will appear here.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const chartConfig = {
   runs: {
     label: "Runs",
@@ -75,6 +108,10 @@ export function DashboardMetrics() {
         Failed to load dashboard metrics.
       </div>
     );
+  }
+
+  if (data.totalRuns === 0) {
+    return <OnboardingTutorial />;
   }
 
   return (
