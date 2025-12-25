@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Switch } from "@workspace/ui/components/switch";
+import { Button } from "@workspace/ui/components/button";
 import {
   addAgentToRepository,
   removeAgentFromRepository,
 } from "@/actions/repositories";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import {
   Item,
   ItemContent,
@@ -102,8 +104,14 @@ export function AgentsToggleList({
 
   if (orgAgents.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No agents available in your organization
+      <div className="text-center py-8 space-y-4">
+        <p className="text-muted-foreground">
+          No agents available in your organization
+        </p>
+        <Button onClick={() => router.push("/agents/wizard")}>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Agent
+        </Button>
       </div>
     );
   }
