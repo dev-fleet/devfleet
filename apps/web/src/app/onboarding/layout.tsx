@@ -4,6 +4,8 @@ import Image from "next/image";
 import { getCurrentOnboardingStep } from "@/actions/onboarding";
 import { OnboardingStepper } from "@/components/onboarding/stepper";
 
+export const dynamic = "force-dynamic";
+
 const OnboardingLayout = async ({ children }: { children: ReactNode }) => {
   // Check if user has completed onboarding
   let onboardingData;
