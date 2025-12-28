@@ -69,8 +69,6 @@ Don't want to self-host? We're building a managed cloud version with extra capab
 
 We're working with a small group of teams during early access.
 
-**→ [Join the waitlist](https://devfleet.ai)**
-
 ---
 
 ## Quick Start (Local Development)
