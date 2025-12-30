@@ -201,6 +201,36 @@ export async function updateAgentPrompt(agentId: string, prompt: string) {
 }
 
 /**
+ * Convert a managed agent to a custom agent by setting its prompt
+ * and removing the template subscription.
+ */
+export async function convertToCustomAgent(agentId: string, prompt: string) {
+  const orgId = await getDefaultOrgId();
+
+  // Verify agent belongs to org
+  const agent = await db
+    .select({ id: agents.id, agentTemplateId: agents.agentTemplateId })
+    .from(agents)
+    .where(and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId)))
+    .limit(1);
+
+  if (!agent[0]) throw new Error("Agent not found");
+
+  // Set prompt and clear agentTemplateId to convert to custom
+  await db
+    .update(agents)
+    .set({ prompt, agentTemplateId: null })
+    .where(
+      and(eq(agents.id, agentId), eq(agents.ownerGhOrganizationId, orgId))
+    );
+
+  revalidatePath(`/dashboard/agents/${agentId}`);
+  revalidatePath(`/agents/${agentId}`);
+  revalidatePath("/agents");
+  return { success: true } as const;
+}
+
+/**
  * Create an agent with repository configuration. Supports two modes:
  * - Managed agent: provide agentTemplateId without prompt (subscribes to template)
  * - Custom/Forked agent: provide prompt (template is optional, used only for initial copy)

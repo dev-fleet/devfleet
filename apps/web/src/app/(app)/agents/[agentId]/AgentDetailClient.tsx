@@ -20,11 +20,16 @@ import {
   TooltipTrigger,
 } from "@workspace/ui/components/tooltip";
 import { toast } from "sonner";
-import { updateAgent, updateAgentPrompt } from "@/actions/agents";
+import {
+  updateAgent,
+  updateAgentPrompt,
+  convertToCustomAgent,
+} from "@/actions/agents";
 import Link from "next/link";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog";
@@ -48,6 +53,7 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
   const [saving, setSaving] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [testDiff, setTestDiff] = useState("");
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
 
   useEffect(() => {
     if (!data?.agent) return;
@@ -60,6 +66,9 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     setInitialPrompt(agentPrompt);
   }, [data]);
 
+  // Determine if agent is managed (has template) or custom (no template)
+  const isManaged = !!data?.agent?.agentTemplateId;
+
   const hasUnsavedChanges = useMemo(() => {
     const nameChanged = name.trim() !== initialName;
     const promptChanged = prompt.trim() !== initialPrompt;
@@ -70,6 +79,45 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
     setName(initialName);
     setPrompt(initialPrompt);
   };
+
+  // Perform the actual save operation
+  const performSave = useCallback(
+    async (shouldConvertToCustom: boolean) => {
+      const trimmedName = name.trim();
+      const trimmedPrompt = prompt.trim();
+
+      try {
+        setSaving(true);
+
+        const nameChanged = trimmedName !== initialName;
+        const promptChanged = trimmedPrompt !== initialPrompt;
+
+        if (nameChanged) {
+          await updateAgent(agentId, { name: trimmedName });
+        }
+
+        if (promptChanged) {
+          if (shouldConvertToCustom) {
+            await convertToCustomAgent(agentId, trimmedPrompt);
+          } else {
+            await updateAgentPrompt(agentId, trimmedPrompt);
+          }
+        }
+
+        // Update initial values to match saved state
+        setInitialName(trimmedName);
+        setInitialPrompt(trimmedPrompt);
+
+        toast.success("Changes saved");
+        mutate();
+      } catch {
+        toast.error("Failed to save changes");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [name, prompt, initialName, initialPrompt, agentId, mutate]
+  );
 
   const handleSave = useCallback(async () => {
     const trimmedName = name.trim();
@@ -85,32 +133,22 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
       return;
     }
 
-    try {
-      setSaving(true);
+    const promptChanged = trimmedPrompt !== initialPrompt;
 
-      const nameChanged = trimmedName !== initialName;
-      const promptChanged = trimmedPrompt !== initialPrompt;
-
-      if (nameChanged) {
-        await updateAgent(agentId, { name: trimmedName });
-      }
-
-      if (promptChanged) {
-        await updateAgentPrompt(agentId, trimmedPrompt);
-      }
-
-      // Update initial values to match saved state
-      setInitialName(trimmedName);
-      setInitialPrompt(trimmedPrompt);
-
-      toast.success("Changes saved");
-      mutate();
-    } catch {
-      toast.error("Failed to save changes");
-    } finally {
-      setSaving(false);
+    // If managed agent and prompt changed, show confirmation modal
+    if (isManaged && promptChanged) {
+      setConvertModalOpen(true);
+      return;
     }
-  }, [name, prompt, initialName, initialPrompt, agentId, mutate]);
+
+    // Otherwise save directly
+    await performSave(false);
+  }, [name, prompt, initialPrompt, isManaged, performSave]);
+
+  const handleConfirmConvert = useCallback(async () => {
+    setConvertModalOpen(false);
+    await performSave(true);
+  }, [performSave]);
 
   // Global keyboard shortcut: ⌘ + Enter to save
   useEffect(() => {
@@ -127,9 +165,6 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
 
   const reposUsing = useMemo(() => data?.reposUsing ?? [], [data]);
   const recentRuns = useMemo(() => data?.recentRuns ?? [], [data]);
-
-  // Determine if agent is managed (has template) or custom (no template)
-  const isManaged = !!data?.agent?.agentTemplateId;
 
   return (
     <div className="grid gap-8">
@@ -222,6 +257,39 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
               }}
             >
               Run test
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Custom Agent Confirmation Modal */}
+      <Dialog open={convertModalOpen} onOpenChange={setConvertModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Convert to custom agent?</DialogTitle>
+            <DialogDescription>
+              Changing the prompt will convert this managed agent to a custom
+              agent. It will no longer receive automatic updates from the
+              DevFleet template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setConvertModalOpen(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmConvert} disabled={saving}>
+              {saving ? (
+                <>
+                  <Spinner className="mr-2 h-4 w-4" />
+                  Saving...
+                </>
+              ) : (
+                "Convert and Save"
+              )}
             </Button>
           </div>
         </DialogContent>
