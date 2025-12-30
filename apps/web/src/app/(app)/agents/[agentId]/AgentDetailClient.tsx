@@ -14,6 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip";
 import { toast } from "sonner";
 import { updateAgent, updateAgentPrompt } from "@/actions/agents";
 import Link from "next/link";
@@ -31,6 +36,7 @@ import {
   ItemTitle,
   ItemActions,
 } from "@workspace/ui/components/item";
+import { Info } from "lucide-react";
 
 export function AgentDetailClient({ agentId }: { agentId: string }) {
   const { data, error, mutate } = useAgentDetail(agentId);
@@ -122,13 +128,57 @@ export function AgentDetailClient({ agentId }: { agentId: string }) {
   const reposUsing = useMemo(() => data?.reposUsing ?? [], [data]);
   const recentRuns = useMemo(() => data?.recentRuns ?? [], [data]);
 
+  // Determine if agent is managed (has template) or custom (no template)
+  const isManaged = !!data?.agent?.agentTemplateId;
+
   return (
     <div className="grid gap-8">
       {/* Agent Info Section */}
-      <div className="grid gap-4">
+      <div className="grid gap-6">
+        <h2 className="text-lg font-semibold">Agent Details</h2>
+        {/* Name */}
         <div className="grid gap-2">
           <label className="text-sm font-medium">Name</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+
+        {/* Type */}
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Type</label>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-muted-foreground">
+              {isManaged ? "Managed" : "Custom"}
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Info className="h-4 w-4" />
+                  <span className="sr-only">Agent type info</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs" side="bottom" align="start">
+                {isManaged ? (
+                  <p>
+                    This agent is subscribed to a DevFleet template. When the
+                    template is improved, your agent will automatically receive
+                    updates.
+                  </p>
+                ) : (
+                  <p>
+                    This is a custom agent with your own instructions. It
+                    won&apos;t receive automatic updates from DevFleet
+                    templates.
+                  </p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          {isManaged && data?.agentTemplate && (
+            <p className="text-sm text-muted-foreground">
+              Based on{" "}
+              <span className="font-medium">{data.agentTemplate.name}</span>
+            </p>
+          )}
         </div>
       </div>
 
