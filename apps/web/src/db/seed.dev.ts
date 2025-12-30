@@ -27,8 +27,6 @@ Focus areas:
 - Promise handling (proper await, .then/.catch)`,
     category: "language",
     icon: "typescript.svg",
-    isSystemTemplate: true,
-    ownerGhOrganizationId: null,
   });
 
   // Security Agent Template
@@ -55,8 +53,6 @@ Focus areas:
 - Sensitive data exposure in logs/errors`,
     category: "security",
     icon: "shield.svg",
-    isSystemTemplate: true,
-    ownerGhOrganizationId: null,
   });
 
   // Spam Agent Template
@@ -116,8 +112,6 @@ Human-written content typically has:
 - Authentic emotional reactions to technical problems`,
     category: "moderation",
     icon: "norobot.png",
-    isSystemTemplate: true,
-    ownerGhOrganizationId: null,
   });
 }
 

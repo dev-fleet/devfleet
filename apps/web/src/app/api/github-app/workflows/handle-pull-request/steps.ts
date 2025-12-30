@@ -251,19 +251,23 @@ export async function runAgent(
       background: false,
     });
 
-    // Fetch the agent's prompt, falling back to the template's basePrompt if null
+    // Fetch the agent's prompt
+    // - Managed agents: prompt is null, use template's basePrompt
+    // - Custom agents: use agent's prompt directly (no template)
     const agentWithTemplate = await db
       .select({
         prompt: agents.prompt,
         basePrompt: agentTemplates.basePrompt,
       })
       .from(agents)
-      .innerJoin(agentTemplates, eq(agents.agentTemplateId, agentTemplates.id))
+      .leftJoin(agentTemplates, eq(agents.agentTemplateId, agentTemplates.id))
       .where(eq(agents.id, agentId))
       .limit(1);
 
+    // For managed agents (has template), use template's basePrompt
+    // For custom agents (no template), use agent's own prompt
     const agentPrompt =
-      agentWithTemplate[0]?.prompt || agentWithTemplate[0]?.basePrompt || "";
+      agentWithTemplate[0]?.prompt ?? agentWithTemplate[0]?.basePrompt ?? "";
 
     const prompt = buildPrompt(agentPrompt);
     const jsonSchema = JSON.stringify(AgentStructuredOutputJsonSchema);

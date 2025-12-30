@@ -106,7 +106,6 @@ export async function createAgentAndAdvance(agentTemplateId: string): Promise<{
     .select({
       id: agentTemplates.id,
       name: agentTemplates.name,
-      basePrompt: agentTemplates.basePrompt,
     })
     .from(agentTemplates)
     .where(eq(agentTemplates.id, agentTemplateId))
@@ -116,13 +115,13 @@ export async function createAgentAndAdvance(agentTemplateId: string): Promise<{
     return { success: false, error: "Agent template not found" };
   }
 
-  // Create the agent
+  // Create a managed agent (subscribes to template, prompt inherited at runtime)
   const createdAgents = await db
     .insert(agents)
     .values({
       name: template[0].name,
       agentTemplateId: template[0].id,
-      prompt: template[0].basePrompt,
+      prompt: null, // Managed agents inherit prompt from template
       engine: "anthropic",
       description: null,
       ownerGhOrganizationId: orgId,

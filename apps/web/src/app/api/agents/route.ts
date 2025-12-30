@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, isNotNull } from "drizzle-orm";
 import { withAuth } from "@/utils/middleware";
 import { db } from "@/db";
-import { agents, repoAgents, users, agentTemplates } from "@/db/schema";
+import { agents, repoAgents, users } from "@/db/schema";
 
 async function getOrganizationAgents(userId: string) {
   const user = await db
@@ -24,9 +24,11 @@ async function getOrganizationAgents(userId: string) {
       description: agents.description,
       engine: agents.engine,
       updatedAt: agents.updatedAt,
+      agentTemplateId: agents.agentTemplateId,
       reposUsingCount: sql<number>`count(${repoAgents.id})`,
       enabledReposCount: sql<number>`coalesce(sum(case when ${repoAgents.enabled} then 1 else 0 end), 0)`,
-      isSystemTemplate: agentTemplates.isSystemTemplate,
+      // Managed = has a template, Custom = no template (agentTemplateId is null)
+      isManaged: sql<boolean>`${isNotNull(agents.agentTemplateId)}`,
     })
     .from(agents)
     .leftJoin(
@@ -36,11 +38,10 @@ async function getOrganizationAgents(userId: string) {
         eq(repoAgents.ownerGhOrganizationId, orgId)
       )
     )
-    .innerJoin(agentTemplates, eq(agents.agentTemplateId, agentTemplates.id))
     .where(
       and(eq(agents.ownerGhOrganizationId, orgId), eq(agents.archived, false))
     )
-    .groupBy(agents.id, agentTemplates.isSystemTemplate)
+    .groupBy(agents.id)
     .orderBy(agents.name);
 
   return orgAgents;

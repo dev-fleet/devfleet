@@ -152,7 +152,7 @@ export function AgentsTableClient() {
                   </Link>
                 </TableCell>
                 <TableCell className="capitalize">
-                  {agent.isSystemTemplate ? "Managed" : "Custom"}
+                  {agent.isManaged ? "Managed" : "Custom"}
                 </TableCell>
                 <TableCell className="text-center">
                   {agent.enabledReposCount ?? 0}

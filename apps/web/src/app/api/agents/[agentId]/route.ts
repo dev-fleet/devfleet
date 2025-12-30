@@ -51,20 +51,34 @@ async function getAgentDetail(userId: string, agentId: string) {
     throw new Error("Agent not found");
   }
 
-  // Get agent template information
-  const agentTemplate = await db
-    .select({
-      id: agentTemplates.id,
-      name: agentTemplates.name,
-      slug: agentTemplates.slug,
-      description: agentTemplates.description,
-      basePrompt: agentTemplates.basePrompt,
-      category: agentTemplates.category,
-      icon: agentTemplates.icon,
-    })
-    .from(agentTemplates)
-    .where(eq(agentTemplates.id, theAgent[0].agentTemplateId))
-    .limit(1);
+  // Get agent template information (only if this is a managed agent with a template)
+  let agentTemplate: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    basePrompt: string;
+    category: string | null;
+    icon: string | null;
+  } | null = null;
+
+  if (theAgent[0].agentTemplateId) {
+    const templateResult = await db
+      .select({
+        id: agentTemplates.id,
+        name: agentTemplates.name,
+        slug: agentTemplates.slug,
+        description: agentTemplates.description,
+        basePrompt: agentTemplates.basePrompt,
+        category: agentTemplates.category,
+        icon: agentTemplates.icon,
+      })
+      .from(agentTemplates)
+      .where(eq(agentTemplates.id, theAgent[0].agentTemplateId))
+      .limit(1);
+
+    agentTemplate = templateResult[0] ?? null;
+  }
 
   // Repos using this agent
   const reposUsing = await db
@@ -126,7 +140,7 @@ async function getAgentDetail(userId: string, agentId: string) {
 
   return {
     agent: theAgent[0],
-    agentTemplate: agentTemplate[0] ?? null,
+    agentTemplate,
     reposUsing: reposUsingWithLastRun,
     recentRuns: recentRunsRaw,
   } as const;

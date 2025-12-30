@@ -314,19 +314,11 @@ export const agentTemplates = pgTable(
     basePrompt: text("base_prompt").notNull(),
     category: text("category"),
     icon: text("icon"),
-    // System templates (owned by platform) have null owner, user templates have an owner
-    ownerGhOrganizationId: text("owner_gh_organization_id").references(
-      () => ghOrganizations.id,
-      { onDelete: "cascade" }
-    ),
-    isSystemTemplate: boolean("is_system_template").notNull().default(false),
     ...timestamps,
   },
   (table) => [
     uniqueIndex("agent_templates_slug_uq").on(table.slug),
     index("agent_templates_category_idx").on(table.category),
-    index("agent_templates_owner_idx").on(table.ownerGhOrganizationId),
-    index("agent_templates_system_idx").on(table.isSystemTemplate),
   ]
 );
 
@@ -337,10 +329,12 @@ export const agents = pgTable(
       .primaryKey()
       .$defaultFn(() => createId()),
     name: text("name").notNull(),
-    agentTemplateId: text("agent_template_id")
-      .notNull()
-      .references(() => agentTemplates.id, { onDelete: "restrict" }),
-    prompt: text("prompt"), // Optional override of base prompt
+    // Nullable: null = custom agent, set = managed agent (subscribed to system template)
+    agentTemplateId: text("agent_template_id").references(
+      () => agentTemplates.id,
+      { onDelete: "restrict" }
+    ),
+    prompt: text("prompt"), // Required for custom agents, null for managed agents (uses template basePrompt)
     engine: text("engine", {
       enum: ["anthropic", "openai"],
     })
@@ -438,12 +432,8 @@ export const prCheckRuns = pgTable(
 
 export const agentTemplatesRelations = relations(
   agentTemplates,
-  ({ one, many }) => ({
+  ({ many }) => ({
     agents: many(agents),
-    ownerOrg: one(ghOrganizations, {
-      fields: [agentTemplates.ownerGhOrganizationId],
-      references: [ghOrganizations.id],
-    }),
   })
 );
 

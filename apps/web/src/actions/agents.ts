@@ -23,33 +23,47 @@ async function getDefaultOrgId() {
   return orgId;
 }
 
+/**
+ * Create an agent. Supports two modes:
+ * - Managed agent: provide agentTemplateId, prompt is null (inherits from template)
+ * - Custom agent: no agentTemplateId, must provide prompt
+ */
 export async function createAgent(input: {
   name: string;
-  agentTemplateId: string;
+  agentTemplateId?: string | null;
   engine: Engine;
   description?: string | null;
   prompt?: string | null;
 }) {
   const orgId = await getDefaultOrgId();
 
-  // Verify agent template exists and get basePrompt
-  const agentTemplate = await db
-    .select({ id: agentTemplates.id, basePrompt: agentTemplates.basePrompt })
-    .from(agentTemplates)
-    .where(eq(agentTemplates.id, input.agentTemplateId))
-    .limit(1);
-
-  if (!agentTemplate[0]) {
-    throw new Error("Agent template not found");
+  // Validate: either managed (has template) or custom (has prompt)
+  if (!input.agentTemplateId && !input.prompt) {
+    throw new Error("Custom agents must have a prompt");
   }
 
-  // Create the agent with prompt (either provided or from template)
+  // For managed agents, verify the template exists
+  if (input.agentTemplateId) {
+    const agentTemplate = await db
+      .select({ id: agentTemplates.id })
+      .from(agentTemplates)
+      .where(eq(agentTemplates.id, input.agentTemplateId))
+      .limit(1);
+
+    if (!agentTemplate[0]) {
+      throw new Error("Agent template not found");
+    }
+  }
+
+  // Create the agent
+  // - Managed: agentTemplateId set, prompt null (uses template's basePrompt at runtime)
+  // - Custom: agentTemplateId null, prompt set
   const createdAgents = await db
     .insert(agents)
     .values({
       name: input.name,
-      agentTemplateId: input.agentTemplateId,
-      prompt: input.prompt ?? agentTemplate[0].basePrompt,
+      agentTemplateId: input.agentTemplateId ?? null,
+      prompt: input.agentTemplateId ? null : input.prompt,
       engine: input.engine,
       description: input.description ?? null,
       ownerGhOrganizationId: orgId,
@@ -186,35 +200,51 @@ export async function updateAgentPrompt(agentId: string, prompt: string) {
   return { success: true } as const;
 }
 
+/**
+ * Create an agent with repository configuration. Supports two modes:
+ * - Managed agent: provide agentTemplateId without prompt (subscribes to template)
+ * - Custom/Forked agent: provide prompt (template is optional, used only for initial copy)
+ */
 export async function createAgentWithConfiguration(input: {
-  agentTemplateId: string;
+  agentTemplateId?: string | null;
   name: string;
   engine: Engine;
   description?: string | null;
-  prompt: string;
+  prompt?: string | null;
   repositoryIds: string[];
 }) {
   try {
     const orgId = await getDefaultOrgId();
 
-    // Verify agent template exists
-    const agentTemplate = await db
-      .select({ id: agentTemplates.id })
-      .from(agentTemplates)
-      .where(eq(agentTemplates.id, input.agentTemplateId))
-      .limit(1);
-
-    if (!agentTemplate[0]) {
-      return { success: false, error: "Agent template not found" };
+    // Validate: either managed (has template, no prompt) or custom (has prompt)
+    if (!input.agentTemplateId && !input.prompt) {
+      return { success: false, error: "Custom agents must have a prompt" };
     }
 
-    // Create the agent with the provided prompt
+    // For managed agents, verify the template exists
+    if (input.agentTemplateId) {
+      const agentTemplate = await db
+        .select({ id: agentTemplates.id })
+        .from(agentTemplates)
+        .where(eq(agentTemplates.id, input.agentTemplateId))
+        .limit(1);
+
+      if (!agentTemplate[0]) {
+        return { success: false, error: "Agent template not found" };
+      }
+    }
+
+    // Determine if this is managed or custom/forked:
+    // - If prompt is provided, it's a custom/forked agent (no template link)
+    // - If no prompt but has template, it's managed (subscribes to template)
+    const isCustom = !!input.prompt;
+
     const createdAgents = await db
       .insert(agents)
       .values({
         name: input.name,
-        agentTemplateId: input.agentTemplateId,
-        prompt: input.prompt,
+        agentTemplateId: isCustom ? null : input.agentTemplateId,
+        prompt: isCustom ? input.prompt : null,
         engine: input.engine,
         description: input.description ?? null,
         ownerGhOrganizationId: orgId,
