@@ -76,7 +76,7 @@ export function AgentWizard() {
 
         if (result.success) {
           toast.success("Agent created successfully!");
-          router.push(`/agents/${result.agentId}`);
+          router.push("/agents");
         } else {
           toast.error(result.error || "Failed to create agent");
         }
