@@ -11,7 +11,8 @@ import { toast } from "sonner";
 export type WizardData = {
   agentTemplateId: string;
   agentTemplateName: string;
-  prompt: string;
+  prompt: string | null;
+  isCustom: boolean;
   repositoryIds: string[];
 };
 
@@ -33,26 +34,43 @@ export function AgentWizard() {
     []
   );
 
-  const handleStepTwoComplete = useCallback((prompt: string) => {
-    setWizardData((prev) => ({ ...prev, prompt }));
-    setCurrentStep(3);
-  }, []);
+  const handleStepTwoComplete = useCallback(
+    (data: { prompt: string | null; isCustom: boolean }) => {
+      setWizardData((prev) => ({
+        ...prev,
+        prompt: data.prompt,
+        isCustom: data.isCustom,
+      }));
+      setCurrentStep(3);
+    },
+    []
+  );
 
   const handleStepThreeComplete = useCallback(
     async (repositoryIds: string[]) => {
-      if (!wizardData.agentTemplateId || !wizardData.prompt) {
+      if (!wizardData.agentTemplateId) {
         toast.error("Missing wizard data");
+        return;
+      }
+
+      // Custom agents require a prompt, managed agents don't
+      if (wizardData.isCustom && !wizardData.prompt) {
+        toast.error("Custom agents require a prompt");
         return;
       }
 
       setIsSubmitting(true);
       try {
         const result = await createAgentWithConfiguration({
-          agentTemplateId: wizardData.agentTemplateId,
+          // For managed agents, pass the template ID; for custom, pass null
+          agentTemplateId: wizardData.isCustom
+            ? null
+            : wizardData.agentTemplateId,
           name: wizardData.agentTemplateName || "New Agent",
           engine: "anthropic",
           description: null,
-          prompt: wizardData.prompt,
+          // For managed agents, prompt is null; for custom, use their prompt
+          prompt: wizardData.isCustom ? wizardData.prompt : null,
           repositoryIds,
         });
 
