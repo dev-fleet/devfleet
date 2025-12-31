@@ -2,10 +2,10 @@
 
 <p align="center">
   <a href="https://www.devfleet.ai">
-    <h1 align="center">DevFleet - your repository automation tools</h1>
+    <h1 align="center">DevFleet – Repository Automation Tools</h1>
   </a>
   <p align="center">
-    Automate your repository tasks like reviewing PRs, triage issues or write weekly team reports. All open-source, using your favourite coding agent.
+    Automate your repository tasks like reviewing PRs, triaging issues, or writing weekly team reports. Fully open source, using your favorite coding agent.
     <br />
     <a href="https://www.devfleet.ai">Website</a>
     ·
@@ -17,11 +17,11 @@
 
 ## The Problem
 
-Your team adopted Cursor, Claude Code, or Amp. Velocity went up. But so did the time you spend in code review.
+Your team adopted Cursor, Claude Code, or Amp. Velocity went up. But so did the time you spend on code reviews.
 
-AI tools are great at generating working code but they don't know your team's patterns. They miss your naming conventions, ignore your error-handling style, and introduce subtle inconsistencies that compound over time.
+AI tools are great at generating working code, but they don’t know your team’s patterns. They miss your naming conventions, ignore your error-handling style, and introduce subtle inconsistencies that compound over time.
 
-You're now the human guardrail catching style drift across dozens of PRs a week.
+You’re now the human guardrail, catching style drift across dozens of PRs each week.
 
 ---
 
@@ -29,14 +29,14 @@ You're now the human guardrail catching style drift across dozens of PRs a week.
 
 DevFleet is an open-source agent that reviews AI-generated pull requests and flags pattern drift with clear, actionable comments.
 
-It understands your codebase conventions and points out when AI-generated code doesn't match:
+It understands your codebase conventions and points out when AI-generated code doesn’t match:
 
 - Inconsistent naming or file organization
-- Missed abstractions your team already has
-- Error handling that doesn't follow your patterns
+- Missed abstractions your team already uses
+- Error handling that doesn’t follow your patterns
 - Style violations that slip past linters
 
-Think of it as a senior engineer who's memorized your style guide and never gets tired.
+Think of it as a senior engineer who’s memorized your style guide and never gets tired.
 
 ---
 
@@ -62,7 +62,7 @@ We offer a hosted version of DevFleet at [https://www.devfleet.ai](https://www.d
 
 ### Local Development
 
-You can find the more detailed full self-hosting guide: [docs.devfleet.ai/self-hosting](https://docs.devfleet.ai/self-hosting)
+You can find the full self-hosting guide here: [docs.devfleet.ai/self-hosting](https://docs.devfleet.ai/self-hosting)
 
 1. Clone the repo and install dependencies:
 
