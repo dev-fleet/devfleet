@@ -1,14 +1,25 @@
-# DevFleet
+[![](assets/github-header.jpg)](https://www.devfleet.ai)
 
-**The open-source code reviewer for AI-generated pull requests.**
-
----
+<p align="center">
+  <a href="https://www.devfleet.ai">
+    <h1 align="center">DevFleet - your repository automation tools</h1>
+  </a>
+  <p align="center">
+    Automate your repository tasks like reviewing PRs, triage issues or write weekly team reports. All open-source, using your favourite coding agent.
+    <br />
+    <a href="https://www.devfleet.ai">Website</a>
+    ·
+    <a href="https://www.getinboxzero.com/discord">Discord</a>
+    ·
+    <a href="https://github.com/dev-fleet/devfleet/issues">Issues</a>
+  </p>
+</p>
 
 ## The Problem
 
 Your team adopted Cursor, Claude Code, or Amp. Velocity went up. But so did the time you spend in code review.
 
-AI tools are great at generating working code—but they don't know your team's patterns. They miss your naming conventions, ignore your error-handling style, and introduce subtle inconsistencies that compound over time.
+AI tools are great at generating working code but they don't know your team's patterns. They miss your naming conventions, ignore your error-handling style, and introduce subtle inconsistencies that compound over time.
 
 You're now the human guardrail catching style drift across dozens of PRs a week.
 
@@ -16,7 +27,7 @@ You're now the human guardrail catching style drift across dozens of PRs a week.
 
 ## The Solution
 
-DevFleet is an open-source agent that reviews AI-generated pull requests and flags pattern drift with clear, actionable comments—before you even open the PR.
+DevFleet is an open-source agent that reviews AI-generated pull requests and flags pattern drift with clear, actionable comments.
 
 It understands your codebase conventions and points out when AI-generated code doesn't match:
 
@@ -43,35 +54,15 @@ Think of it as a senior engineer who's memorized your style guide and never gets
 5. You review with context, not guesswork
 ```
 
-**Example comment:**
-
-> 💡 This creates a new `fetchUserData` helper, but `src/utils/api.ts` already exports `getUserById` which handles the same case with your team's retry logic. Consider using the existing abstraction.
-
 ---
 
-## Open Source & Self-Hostable
+## Getting Started
 
-DevFleet is fully open source under the AGPL license. You can run it on your own infrastructure with complete control over your data.
+We offer a hosted version of DevFleet at [https://www.devfleet.ai](https://www.devfleet.ai).
 
-**Self-hosting takes about 15 minutes:**
+### Local Development
 
-→ Full self-hosting guide: [docs.devfleet.ai/self-hosting](https://docs.devfleet.ai/self-hosting)
-
----
-
-## Early Access Cloud Offering
-
-Don't want to self-host? We're building a managed cloud version with extra capabilities:
-
-- **Pattern extraction** – We analyze your codebase and extract your team's conventions automatically
-- **Tuned review rules** – Custom rules based on your actual code, not generic best practices
-- **Priority support** – Direct line to the team building DevFleet
-
-We're working with a small group of teams during early access.
-
----
-
-## Quick Start (Local Development)
+You can find the more detailed full self-hosting guide: [docs.devfleet.ai/self-hosting](https://docs.devfleet.ai/self-hosting)
 
 1. Clone the repo and install dependencies:
 
