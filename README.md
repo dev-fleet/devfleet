@@ -1,15 +1,15 @@
 [![](assets/github-header.jpg)](https://www.devfleet.ai)
 
 <p align="center">
-  <a href="https://www.devfleet.ai">
+  <a href="https://www.devfleet.ai" target="_blank">
     <h1 align="center">DevFleet – Repository Automation Tools</h1>
   </a>
   <p align="center">
     Automate your repository tasks like reviewing PRs, triaging issues, or writing weekly team reports. Fully open source, using your favorite coding agent.
     <br />
-    <a href="https://www.devfleet.ai">Website</a>
+    <a href="https://www.devfleet.ai" target="_blank">Website</a>
     ·
-    <a href="https://www.getinboxzero.com/discord">Discord</a>
+    <a href="https://discord.gg/m9gDBkxQnQ" target="_blank">Discord</a>
     ·
     <a href="https://github.com/dev-fleet/devfleet/issues">Issues</a>
   </p>
@@ -62,7 +62,7 @@ We offer a hosted version of DevFleet at [https://www.devfleet.ai](https://www.d
 
 ### Local Development
 
-You can find the full self-hosting guide here: [docs.devfleet.ai/self-hosting](https://docs.devfleet.ai/self-hosting)
+You can find the full self-hosting guide here: [devfleet.ai/docs/self-hosting](https://www.devfleet.ai/docs/self-hosting)
 
 1. Clone the repo and install dependencies:
 
